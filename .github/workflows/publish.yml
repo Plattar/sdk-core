@@ -1,0 +1,34 @@
+name: NPM Publish
+on: 
+  push:
+    tags:
+      - '*.*.*'
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: set version from tag
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: print version number
+        run: echo ${{ env.RELEASE_VERSION }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: configure git
+        run: |
+          git config user.email "info@plattar.com"
+          git config user.name "Plattar"
+      - name: set pre-release version
+        run: npm version --prefix sdk-core ${{ env.RELEASE_VERSION }}
+      - name: write version.js
+        run: rm -rf sdk-core/src/version.ts && echo 'export default "${{ env.RELEASE_VERSION }}";' > sdk-core/src/version.ts
+      - name: copy README
+        run: cp README.md sdk-core/README.md
+      - name: NPM Build
+        run: npm run --prefix sdk-core clean:build
+      - uses: JS-DevTools/npm-publish@v1
+        with:
+          package: ./sdk-core/package.json
+          token: ${{ secrets.NPM_PUBLISH_KEY }}
+          access: 'restricted'

@@ -1,0 +1,36 @@
+{
+  "name": "@plattar/sdk-core",
+  "version": "0.0.1",
+  "description": "Core SDK Module for Generative SDK using API Core",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "clean": "rm -rf dist node_modules package-lock.json && npm cache clean --force",
+    "build": "npm install && npm run build-ts",
+    "build-ts": "tsc --noEmitOnError",
+    "clean:build": "npm run clean && npm run build",
+    "graph": "npx madge --image graph.svg ./dist/index.js",
+    "circular": "npx madge --circular ./dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Plattar/sdk-core.git"
+  },
+  "engines": {
+    "node": ">=18.0"
+  },
+  "author": "plattar",
+  "bugs": {
+    "url": "https://github.com/Plattar/sdk-core/issues"
+  },
+  "homepage": "https://www.plattar.com",
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "madge": "^6.1.0"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  }
+}
