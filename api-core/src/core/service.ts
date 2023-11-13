@@ -45,7 +45,7 @@ export class Service {
 
     public static get default(): Service {
         if (!this._defaultService) {
-            throw new Error('ERROR: Service.default is not configured, use Service.config() to set a new default');
+            throw new Error('Error: Service.default is not configured, use Service.config() to set a new default');
         }
 
         return this._defaultService;
