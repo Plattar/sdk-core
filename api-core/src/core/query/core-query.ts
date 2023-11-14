@@ -36,11 +36,11 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         this._instance = instance;
     }
 
-    public where(variable: string, operation: QueryOperator, value: string | number | boolean): this {
+    public where(variable: keyof U, operation: QueryOperator, value: string | number | boolean): this {
         return this;
     }
 
-    public fields(...fields: Array<string>): this {
+    public fields(...fields: Array<keyof U>): this {
         return this;
     }
 
@@ -52,7 +52,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         return this;
     }
 
-    public sort(variable: string, operation: QuerySortOperator): this {
+    public sort(variable: keyof U, operation: QuerySortOperator): this {
         return this;
     }
 
