@@ -1,3 +1,5 @@
+import { CoreQuery } from "./query/core-query";
+
 /**
  * This interface will need to be implemented by the SDK generator
  */
@@ -9,7 +11,7 @@ export interface CoreObjectAttributes { }
 export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
 
     // these attributes are filled from the remote API when a query is made
-    private _attributes: Attributes;
+    private readonly _attributes: Attributes;
 
     // every object has a unique ID assigned, this is filled by the remote API
     private _id: string | null;
@@ -37,5 +39,26 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
 
     public get type(): string {
         return (<any>this.constructor).type;
+    }
+
+    /**
+     * Re-fills tis object instance with data from the api
+     */
+    public setFromAPI(data: any) {
+        // error out if we try to write the data from the api into the wrong type
+        if (this.type !== data.type) {
+            throw new Error("Error: CoreObject.setFromAPI() - type mismatch, cannot set '" + this.type + "' from data type '" + data.type + "'");
+        }
+
+        // assign the ID
+        this._id = data.id;
+
+        // delete all previous keys from our object instance
+        Object.keys(this._attributes).forEach(key => delete (<any>(this._attributes))[key]);
+
+        // assign new keys to our attributes
+        for (const [key, value] of Object.entries(data.attributes)) {
+            (<any>(this._attributes))[key] = value;
+        }
     }
 }
