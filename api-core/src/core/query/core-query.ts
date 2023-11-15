@@ -1,4 +1,5 @@
 import { CoreObject, CoreObjectAttributes } from "../core-object";
+import { Service } from "../service";
 
 /**
  * The currently possible request types that can be made as part of a query
@@ -31,9 +32,19 @@ export type QuerySortOperator = "ascending" | "descending" | "asc" | "desc";
  */
 export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAttributes> {
     private readonly _instance: T;
+    private readonly _service: Service;
 
-    public constructor(instance: T) {
+    public constructor(instance: T, service?: Service) {
         this._instance = instance;
+        this._service = service ? service : Service.default;
+    }
+
+    public get instance(): T {
+        return this._instance;
+    }
+
+    public get service(): Service {
+        return this._service;
     }
 
     public where(variable: keyof U, operation: QueryOperator, value: string | number | boolean): this {
@@ -56,7 +67,9 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         return this;
     }
 
-    protected async _Fetch(url: string, type: QueryFetchType, payload: any): Promise<T> {
+    protected async _Fetch(ervice: Service, url: string, type: QueryFetchType): Promise<T> {
+
+
         return this._instance;
     }
 }

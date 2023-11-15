@@ -33,6 +33,10 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
         return this._id;
     }
 
+    public hasID(): boolean {
+        return this._id ? true : false;
+    }
+
     public static get type(): string {
         throw new Error('Error: CoreObject.type is not implemented, contact admin');
     }
