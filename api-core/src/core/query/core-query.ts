@@ -1,10 +1,10 @@
-import { CoreObject, CoreObjectAttributes } from "../core-object";
-import { Service } from "../service";
+import { CoreObject, CoreObjectAttributes } from '../core-object';
+import { Service } from '../service';
 
 /**
  * The currently possible request types that can be made as part of a query
  */
-export type QueryFetchType = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+export type QueryFetchType = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 /**
  * The operation types that can be used for comparison operations
@@ -17,7 +17,7 @@ export type QueryFetchType = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
  * operator <= is 'less than or equals to'
  * operator ~= is 'roughly equals'
  */
-export type QueryOperator = "==" | "!=" | ">" | "<" | ">=" | "<=" | "~=";
+export type QueryOperator = '==' | '!=' | '>' | '<' | '>=' | '<=' | '~=';
 
 /**
  * The operation types that can be used for sorting operations
@@ -25,7 +25,7 @@ export type QueryOperator = "==" | "!=" | ">" | "<" | ">=" | "<=" | "~=";
  * operator ascending or asc is 'sort by ascending order'
  * operator descending or desc is 'sort by descending order'
  */
-export type QuerySortOperator = "ascending" | "descending" | "asc" | "desc";
+export type QuerySortOperator = 'ascending' | 'descending' | 'asc' | 'desc';
 
 /**
  * Base Query Object that allows building a query against the primary API 

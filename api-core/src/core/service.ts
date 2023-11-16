@@ -65,7 +65,7 @@ export class Service {
 
     public static get default(): Service {
         if (!this._defaultService) {
-            throw new Error('Error: Service.default is not configured, use Service.config() to set a new default');
+            throw new Error('Service.default is not configured, use Service.config() to set a new default');
         }
 
         return this._defaultService;
@@ -79,6 +79,6 @@ export class Service {
      * This returns the base url and versioning combined
      */
     public get url(): string {
-        return this.config.url + "/" + this.config.version
+        return `${this.config.url}/${this.config.version}`
     }
 }

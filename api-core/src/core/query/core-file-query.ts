@@ -1,5 +1,4 @@
 import { CoreObject, CoreObjectAttributes } from '../core-object';
-import { Service } from '../service';
 import { CoreQuery } from './core-query';
 
 /**
@@ -12,11 +11,11 @@ export abstract class CoreFileQuery<T extends CoreObject<U>, U extends CoreObjec
      */
     public async upload(key: keyof U, file: File): Promise<T> {
         if (!this.instance.hasID()) {
-            throw new Error('CoreQuery._UploadFile - cannot upload a file using an uninitialized instance');
+            throw new Error('CoreQuery.upload() - cannot upload a file using an uninitialized instance');
         }
 
         // hit our API to get the url for uploading to s3
-        const uploadRes: Response = await fetch(this.service.url + '/' + this.instance.type + '/' + this.instance.id + '/upload', {
+        const uploadRes: Response = await fetch(`${this.service.url}/${this.instance.type}/${this.instance.id}/upload`, {
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -36,13 +35,17 @@ export abstract class CoreFileQuery<T extends CoreObject<U>, U extends CoreObjec
         // upload into S3
         const json: any = await uploadRes.json();
 
+        if (json.error) {
+            throw new Error(`CoreQuery.upload() - request ${json.status} error - ${json.title} - ${json.text}`);
+        }
+
         const fileId: string = json.data.id;
         const fileType: string = json.data.type;
 
         await fetch(json.data.attributes.url, { method: 'put', body: file });
 
         // re-fetch the file (simple GET request)
-        const apiResult = await fetch(this.service.url + '/' + fileType + '/' + fileId, { method: 'get' });
+        const apiResult = await fetch(`${this.service.url}/${fileType}/${fileId}`, { method: 'get' });
         const fileData: any = await apiResult.json();
 
         this.instance.setFromAPI(fileData);

@@ -1,4 +1,4 @@
-import { type CoreObject } from "./core-object";
+import { type CoreObject } from './core-object';
 
 /**
  * This object provides runtime functionality to access object types for construction

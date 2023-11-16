@@ -1,5 +1,3 @@
-import { CoreQuery } from "./query/core-query";
-
 /**
  * This interface will need to be implemented by the SDK generator
  */
@@ -27,7 +25,7 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
 
     public get id(): string {
         if (!this._id) {
-            throw new Error('Error: CoreObject.id is not configured, use constructor with a non-null id');
+            throw new Error('CoreObject.id is not configured, use constructor with a non-null id');
         }
 
         return this._id;
@@ -38,7 +36,7 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
     }
 
     public static get type(): string {
-        throw new Error('Error: CoreObject.type is not implemented, contact admin');
+        throw new Error('CoreObject.type is not implemented, contact admin');
     }
 
     public get type(): string {
@@ -51,7 +49,7 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
     public setFromAPI(data: any) {
         // error out if we try to write the data from the api into the wrong type
         if (this.type !== data.type) {
-            throw new Error("Error: CoreObject.setFromAPI() - type mismatch, cannot set '" + this.type + "' from data type '" + data.type + "'");
+            throw new Error(`CoreObject.setFromAPI() - type mismatch, cannot set ${this.type} from data type ${data.type}`);
         }
 
         // assign the ID
