@@ -36,7 +36,7 @@ export abstract class CoreFileQuery<T extends CoreObject<U>, U extends CoreObjec
         const json: any = await uploadRes.json();
 
         if (json.error) {
-            throw new Error(`CoreQuery.upload() - request ${json.status} error - ${json.title} - ${json.text}`);
+            throw new Error(`CoreQuery.upload() - upload request status ${json.status} - error - ${json.title} - ${json.text}`);
         }
 
         const fileId: string = json.data.id;
@@ -47,6 +47,10 @@ export abstract class CoreFileQuery<T extends CoreObject<U>, U extends CoreObjec
         // re-fetch the file (simple GET request)
         const apiResult = await fetch(`${this.service.url}/${fileType}/${fileId}`, { method: 'get' });
         const fileData: any = await apiResult.json();
+
+        if (fileData.error) {
+            throw new Error(`CoreQuery.upload() - refresh request status ${fileData.status} - error - ${fileData.title} - ${fileData.text}`);
+        }
 
         this.instance.setFromAPI(fileData);
 
