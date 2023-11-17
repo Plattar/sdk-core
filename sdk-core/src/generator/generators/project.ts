@@ -12,29 +12,32 @@ export interface PackageJsonVars {
 export interface GeneratedProject {
     readonly packageJson: {
         readonly fname: string;
-        readonly data: any;
+        readonly data: string;
     };
     readonly tsConfig: {
         readonly fname: string;
-        readonly data: any;
+        readonly data: string;
     };
     readonly npmIgnore: {
         readonly fname: string;
-        readonly data: any;
+        readonly data: string;
     };
 }
 
+/**
+ * Contains helpful functions to generate the data for a TypeScript based project
+ */
 export class Project {
 
     public static generate(vars: PackageJsonVars): GeneratedProject {
         return {
             packageJson: {
                 fname: 'package.json',
-                data: Project.generatePackageJson(vars)
+                data: JSON.stringify(Project.generatePackageJson(vars))
             },
             tsConfig: {
                 fname: 'tsconfig.json',
-                data: Project.generateTsConfig()
+                data: JSON.stringify(Project.generateTsConfig())
             },
             npmIgnore: {
                 fname: '.npmignore',
@@ -50,7 +53,7 @@ export class Project {
         return {
             name: '@plattar/' + vars.name,
             version: vars.version,
-            description: 'Generated SDK via SDK Core used for interfacing with Core Plattar Backend Services using',
+            description: 'Generated using @plattar/sdk-core and used for interfacing with ' + vars.name + ' backend service',
             main: 'dist/index.js',
             module: 'dist/index.js',
             types: 'dist/index.d.ts',
@@ -68,6 +71,7 @@ export class Project {
                 node: '>=18.0',
             },
             author: 'plattar',
+            license: 'Apache-2.0',
             bugs: {
                 url: 'https://github.com/Plattar/sdk-core/issues',
             },
@@ -109,7 +113,7 @@ export class Project {
         }
     }
 
-    public static generateNpmIgnore(): any {
+    public static generateNpmIgnore(): string {
         return ['src/',
             'node_modules/',
             'tsconfig.json',
