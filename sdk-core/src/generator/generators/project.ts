@@ -4,9 +4,6 @@ export interface PackageJsonVars {
     readonly dependencies: {
         readonly '@plattar/sdk-core': string;
     };
-    readonly devDependencies: {
-        readonly '@plattar/api-core': string;
-    }
 }
 
 export interface GeneratedProject {
@@ -80,7 +77,6 @@ export class Project {
                 '@plattar/sdk-core': vars.dependencies['@plattar/sdk-core'],
             },
             devDependencies: {
-                '@plattar/api-core': vars.devDependencies['@plattar/api-core'],
                 typescript: '^5.2.2'
             },
             publishConfig: {

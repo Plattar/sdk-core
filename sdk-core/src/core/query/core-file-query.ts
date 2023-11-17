@@ -1,15 +1,17 @@
 import { CoreObject, CoreObjectAttributes } from '../core-object';
 import { CoreQuery } from './core-query';
 
+export enum CoreFileAttributes { }
+
 /**
  * CoreFileQuery has the added functionality to process uploading of files onto the API such as images, 3D models or videos
  */
-export abstract class CoreFileQuery<T extends CoreObject<U>, U extends CoreObjectAttributes> extends CoreQuery<T, U> {
+export abstract class CoreFileQuery<T extends CoreObject<U>, U extends CoreObjectAttributes, V extends CoreFileAttributes> extends CoreQuery<T, U> {
 
     /**
      * One-Shot upload the provided file into the provided key that belongs to the file
      */
-    public async upload(key: keyof U, file: File): Promise<T> {
+    public async upload(key: keyof V, file: File): Promise<T> {
         if (!this.instance.hasID()) {
             throw new Error('CoreQuery.upload() - cannot upload a file using an uninitialized instance');
         }
