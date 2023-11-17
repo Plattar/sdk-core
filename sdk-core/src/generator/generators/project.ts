@@ -1,9 +1,8 @@
+import version from "../../version";
+
 export interface PackageJsonVars {
     readonly name: string;
     readonly version: string;
-    readonly dependencies: {
-        readonly '@plattar/sdk-core': string;
-    };
 }
 
 export interface GeneratedProject {
@@ -74,7 +73,7 @@ export class Project {
             },
             homepage: 'https://www.plattar.com',
             dependencies: {
-                '@plattar/sdk-core': vars.dependencies['@plattar/sdk-core'],
+                '@plattar/sdk-core': '^' + version,
             },
             devDependencies: {
                 typescript: '^5.2.2'
