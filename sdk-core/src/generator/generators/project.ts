@@ -18,6 +18,10 @@ export interface GeneratedProject {
         readonly fname: string;
         readonly data: string;
     };
+    readonly npmRc: {
+        readonly fname: string;
+        readonly data: string;
+    }
 }
 
 /**
@@ -38,6 +42,10 @@ export class Project {
             npmIgnore: {
                 fname: '.npmignore',
                 data: Project.generateNpmIgnore()
+            },
+            npmRc: {
+                fname: '.npmrc',
+                data: "//registry.npmjs.org/:_authToken=${NPM_TOKEN}"
             }
         }
     }

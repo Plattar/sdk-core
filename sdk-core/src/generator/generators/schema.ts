@@ -15,7 +15,7 @@ export class Schema {
     /**
      * Generates a class using the provided controller
      */
-    public static generate(controller: CoreController, myval: { my: string, value: string }): GeneratedSchema {
+    public static generate(controller: CoreController): GeneratedSchema {
         const schemaInstance: ObjectSchema = new (<any>controller.getSchema());
         const className = Util.capitaliseClassName(schemaInstance.type);
         const interfaceName = className + 'Attributes';
