@@ -1,7 +1,7 @@
 import { CoreObject, CoreObjectAttributes } from '../core-object';
 import { CoreQuery } from './core-query';
 
-export enum CoreFileAttributes { }
+export interface CoreFileAttributes { }
 
 /**
  * CoreFileQuery has the added functionality to process uploading of files onto the API such as images, 3D models or videos

@@ -1,5 +1,6 @@
 .DS_Store
 sdk-core/node_modules/
 sdk-core/dist/
+sdk-core/generated/
 sdk-core/package-lock.json
 sdk-core/graph.svg

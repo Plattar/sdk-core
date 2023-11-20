@@ -33,11 +33,11 @@ export class Project {
         return {
             packageJson: {
                 fname: 'package.json',
-                data: JSON.stringify(Project.generatePackageJson(vars))
+                data: JSON.stringify(Project.generatePackageJson(vars), null, 2)
             },
             tsConfig: {
                 fname: 'tsconfig.json',
-                data: JSON.stringify(Project.generateTsConfig())
+                data: JSON.stringify(Project.generateTsConfig(), null, 2)
             },
             npmIgnore: {
                 fname: '.npmignore',

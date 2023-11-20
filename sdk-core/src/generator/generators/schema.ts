@@ -30,10 +30,10 @@ export class Schema {
         if (isFile) {
             const fileSchema: FileSchema = <FileSchema>schemaInstance;
 
-            output += `export enum ${fileInterfaceName} extends CoreFileAttributes {\n`
+            output += `export interface ${fileInterfaceName} extends CoreFileAttributes {\n`
 
             fileSchema.getFileUploads().forEach((value: FileUpload) => {
-                output += `\t${value.key}\n`;
+                output += `\treadonly ${value.key}:any\n`;
             });
 
             output += '}\n';
@@ -54,14 +54,13 @@ export class Schema {
 
         // GENERATE: the main Static Query object + all functions (functions to-do)
         output += `export class ${queryName}Static extends ${(isFile ? 'CoreFileQuery' : 'CoreQuery')}<${className},${interfaceName}${(isFile ? `,${fileInterfaceName}` : '')}> {\n`;
-        output += this.generateSingleQueryFunctions(controller, className);
-        output += this.generateArrayQueryFunctions(controller, className);
+        output += this.generateStaticQueryFunctions(controller, className);
 
         output += '}\n';
 
         // GENERATE: the main Dynamic Query object + all functions (functions to-do)
         output += `export class ${queryName}Dynamic extends ${(isFile ? 'CoreFileQuery' : 'CoreQuery')}<${className},${interfaceName}${(isFile ? `,${fileInterfaceName}` : '')}> {\n`;
-        output += this.generateSingleQueryFunctions(controller, className);
+        output += this.generateDynamicQueryFunctions(controller, className);
 
         output += '}\n';
 
@@ -83,7 +82,7 @@ export class Schema {
         };
     }
 
-    private static generateSingleQueryFunctions(controller: CoreController, className: string): string {
+    private static generateDynamicQueryFunctions(controller: CoreController, className: string): string {
         const mounts: Array<EndpointMount> = controller.mount();
 
         let output = '';
@@ -95,20 +94,25 @@ export class Schema {
                 // generate the function
                 const data: Array<string> = Util.getParams(mount.endpoint);
                 let dataType: string | null = null;
+                let isSet: boolean = false;
 
                 if (data.length > 0) {
                     dataType = '{';
 
                     data.forEach((attr: string) => {
-                        dataType += `${attr}:string,`;
+                        if (attr !== 'id') {
+                            dataType += `${attr}:string,`;
+
+                            isSet = true;
+                        }
                     });
 
-                    dataType += (dataType.slice(0, -1) + '}');
+                    dataType = (dataType.slice(0, -1) + '}');
                 }
 
-                output += `\t\tpublic ${meta.name}(${(dataType ? `params:${dataType}` : '')}): ${className} | null {`
+                output += `\t\tpublic ${meta.name}(${(isSet ? `params:${dataType}` : '')}): ${className} | null {\n`
                 // fill in the function
-                output += `return null;//TODO`;
+                output += `return null;\n`;
                 output += '\t\t}\n';
             }
         });
@@ -116,7 +120,7 @@ export class Schema {
         return output;
     }
 
-    private static generateArrayQueryFunctions(controller: CoreController, className: string): string {
+    private static generateStaticQueryFunctions(controller: CoreController, className: string): string {
         const mounts: Array<EndpointMount> = controller.mount();
 
         let output = '';
@@ -124,7 +128,7 @@ export class Schema {
         mounts.forEach((mount: EndpointMount) => {
             const meta: EndpointMetaData | undefined = mount.meta;
 
-            if (meta && meta.returnType === "array") {
+            if (meta && meta.returnType !== "custom") {
                 // generate the function
                 const data: Array<string> = Util.getParams(mount.endpoint);
                 let dataType: string | null = null;
@@ -136,12 +140,12 @@ export class Schema {
                         dataType += `${attr}:string,`;
                     });
 
-                    dataType += (dataType.slice(0, -1) + '}');
+                    dataType = (dataType.slice(0, -1) + '}');
                 }
 
-                output += `\t\tpublic ${meta.name}(${(dataType ? `params:${dataType}` : '')}): Array<${className}> {`
+                output += `\t\tpublic ${meta.name}(${(dataType ? `params:${dataType}` : '')}): ${meta.returnType === "array" ? `Array<${className}>` : `${className} | null`} {\n`
                 // fill in the function
-                output += `return [];//TODO`;
+                output += `return ${meta.returnType === "array" ? '[]' : 'null'};\n`;
                 output += '\t\t}\n';
             }
         });
