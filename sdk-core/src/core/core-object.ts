@@ -14,9 +14,9 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
     // every object has a unique ID assigned, this is filled by the remote API
     private _id: string | null;
 
-    public constructor(id?: string | null) {
+    public constructor(id?: string | null, attributes?: Attributes) {
         this._id = id ? id : null;
-        this._attributes = <Attributes>{}
+        this._attributes = attributes ? attributes : <Attributes>{}
     }
 
     public get attributes(): Attributes {
