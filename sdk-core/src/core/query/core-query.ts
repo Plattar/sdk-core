@@ -67,9 +67,9 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         return this;
     }
 
-    protected async _Fetch(ervice: Service, url: string, type: QueryFetchType): Promise<T> {
+    protected async _Fetch(url: string, type: QueryFetchType): Promise<Array<T>> {
+        const results: Array<T> = new Array<T>();
 
-
-        return this._instance;
+        return results;
     }
 }

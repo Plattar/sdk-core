@@ -1,4 +1,4 @@
-import { AttributeKT, CoreController, EndpointMetaData, EndpointMount, FileSchema, FileUpload, ObjectSchema } from '@plattar/api-core';
+import { AttributeKT, CoreController, EndpointMetaData, EndpointMount, FileSchema, FileUpload, ObjectSchema, Util as CoreUtil } from '@plattar/api-core';
 import { Util } from './util';
 
 export interface GeneratedSchema {
@@ -84,6 +84,17 @@ export class Schema {
 
     private static generateDynamicQueryFunctions(controller: CoreController, className: string): string {
         const mounts: Array<EndpointMount> = controller.mount();
+        const apiType: string = controller.getSchema().apiType;
+        const suffix: string = controller.suffix;
+        let endpoint: string = "";
+
+        if (suffix !== "") {
+            endpoint = endpoint + "/" + suffix;
+        }
+
+        if (apiType !== CoreUtil.DEFAULT_OBJECT_TYPE) {
+            endpoint = endpoint + "/" + apiType;
+        }
 
         let output = '';
 
@@ -95,6 +106,7 @@ export class Schema {
                 const data: Array<string> = Util.getParams(mount.endpoint);
                 let dataType: string | null = null;
                 let isSet: boolean = false;
+                let additionalQuery: string = '';
 
                 if (data.length > 0) {
                     dataType = '{';
@@ -104,15 +116,20 @@ export class Schema {
                             dataType += `${attr}:string,`;
 
                             isSet = true;
+
+                            additionalQuery += `.replace(':${attr}', params.${attr})`;
                         }
                     });
 
                     dataType = (dataType.slice(0, -1) + '}');
                 }
 
-                output += `\t\tpublic ${meta.name}(${(isSet ? `params:${dataType}` : '')}): ${className} | null {\n`
-                // fill in the function
-                output += `return null;\n`;
+                const mountEndpoint: string = mount.endpoint.replace(":id", "${this.instance.id}");
+
+                output += `\t\tpublic async ${meta.name}(${(isSet ? `params:${dataType}` : '')}): Promise<${className} | null> {\n`;
+                output += `\t\t\tconst url:string = \`${endpoint}${mountEndpoint}\`${isSet ? additionalQuery : ''};\n`;
+                output += `\t\t\tconst result:Array<${className}> = await this._Fetch(url, '${mount.type}');\n`;
+                output += `\t\t\treturn result.length > 0 ? result[0] : null;\n`;
                 output += '\t\t}\n';
             }
         });
@@ -122,6 +139,17 @@ export class Schema {
 
     private static generateStaticQueryFunctions(controller: CoreController, className: string): string {
         const mounts: Array<EndpointMount> = controller.mount();
+        const apiType: string = controller.getSchema().apiType;
+        const suffix: string = controller.suffix;
+        let endpoint: string = "";
+
+        if (suffix !== "") {
+            endpoint = endpoint + "/" + suffix;
+        }
+
+        if (apiType !== CoreUtil.DEFAULT_OBJECT_TYPE) {
+            endpoint = endpoint + "/" + apiType;
+        }
 
         let output = '';
 
@@ -132,20 +160,23 @@ export class Schema {
                 // generate the function
                 const data: Array<string> = Util.getParams(mount.endpoint);
                 let dataType: string | null = null;
+                let additionalQuery: string = '';
 
                 if (data.length > 0) {
                     dataType = '{';
 
                     data.forEach((attr: string) => {
                         dataType += `${attr}:string,`;
+                        additionalQuery += `.replace(':${attr}', params.${attr})`;
                     });
 
                     dataType = (dataType.slice(0, -1) + '}');
                 }
 
-                output += `\t\tpublic ${meta.name}(${(dataType ? `params:${dataType}` : '')}): ${meta.returnType === "array" ? `Array<${className}>` : `${className} | null`} {\n`
-                // fill in the function
-                output += `return ${meta.returnType === "array" ? '[]' : 'null'};\n`;
+                output += `\t\tpublic async ${meta.name}(${(dataType ? `params:${dataType}` : '')}): Promise<${meta.returnType === "array" ? `Array<${className}>` : `${className} | null`}> {\n`;
+                output += `\t\t\tconst url:string = \`${endpoint}${mount.endpoint}\`${dataType ? additionalQuery : ''};\n`;
+                output += `\t\t\tconst result:Array<${className}> = await this._Fetch(url, '${mount.type}');\n`;
+                output += `\t\t\t${meta.returnType === "array" ? 'return result' : 'return result.length > 0 ? result[0] : null'};\n`;
                 output += '\t\t}\n';
             }
         });
