@@ -8,6 +8,12 @@ export interface ServiceAuth {
     // authentication type is 'cookie'
     readonly token?: string | null;
 
+    // (optional) ask server to return gzipped content, this will reduce
+    // download time for requests and might speed things up at expense of
+    // additional processing on the client-side
+    // NOTE: When SDK is used in browser, gzip is automatically enabled
+    readonly gzip?: boolean | null;
+
     // (optuonal) for non-secure NodeJS environments to enable/disable tls
     // this defaults to 'false'
     readonly tls?: boolean | null;
@@ -35,6 +41,7 @@ export interface LockedServiceConfig {
         readonly type: ServiceAuthType;
         readonly token: string | null;
         readonly tls: boolean;
+        readonly gzip: boolean;
     }
 }
 
@@ -52,7 +59,8 @@ export class Service {
             auth: {
                 type: (config.auth && config.auth.type) ? config.auth.type : 'cookie',
                 token: (config.auth && config.auth.token) ? config.auth.token : null,
-                tls: (config.auth && config.auth.tls) ? true : false
+                tls: (config.auth && config.auth.tls) ? true : false,
+                gzip: (config.auth && config.auth.gzip) ? true : false
             }
         }
     }
