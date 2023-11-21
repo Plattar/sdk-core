@@ -1,4 +1,4 @@
-import { CoreController, EndpointMetaData, EndpointMount, FileSchema, FileUpload, ObjectSchema } from '@plattar/api-core';
+import { AttributeKT, CoreController, EndpointMetaData, EndpointMount, FileSchema, FileUpload, ObjectSchema } from '@plattar/api-core';
 import { Util } from './util';
 
 export interface GeneratedSchema {
@@ -42,12 +42,12 @@ export class Schema {
         // GENERATE: attributes interface, public is mutable and protected is immutable
         output += `export interface ${interfaceName} extends CoreObjectAttributes {\n`;
 
-        schemaInstance.attributes.publicList.forEach((attribute: string) => {
-            output += `\t${attribute}:any;\n`;
+        schemaInstance.attributes.publicListTypes.forEach((attribute: AttributeKT) => {
+            output += `\t${attribute.key}${attribute.type !== 'any' ? '?' : ''}:${attribute.type};\n`;
         });
 
-        schemaInstance.attributes.protectedList.forEach((attribute: string) => {
-            output += `\treadonly ${attribute}:any;\n`;
+        schemaInstance.attributes.protectedListTypes.forEach((attribute: AttributeKT) => {
+            output += `\treadonly ${attribute.key}${attribute.type !== 'any' ? '?' : ''}:${attribute.type};\n`;
         });
 
         output += '}\n';
