@@ -2,27 +2,17 @@ import { CoreObject, CoreObjectAttributes } from '../core-object';
 import { Service } from '../service';
 import { QueryContainsOperator, ContainsQuery } from './queries/contains-query';
 import { DeletedQuery } from './queries/deleted-query';
+import { FieldsQuery } from './queries/fields-query';
+import { FilterQuery, FilterQueryOperator } from './queries/filter-query';
 import { PaginationQuery } from './queries/pagination-query';
 import { Query } from './queries/query';
+import { SearchQuery, SearchQueryOperator } from './queries/search-query';
 import { QuerySortOperator, SortQuery } from './queries/sort-query';
 
 /**
  * The currently possible request types that can be made as part of a query
  */
 export type QueryFetchType = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-
-/**
- * The operation types that can be used for comparison operations
- * 
- * operator == or = is 'equals'
- * operator != is 'not equals'
- * operator > is 'greater than'
- * operator < is 'less than'
- * operator >= is 'greater than or equals to'
- * operator <= is 'less than or equals to'
- * operator ~= is 'roughly equals' or 'fuzzy search'
- */
-export type QueryOperator = '==' | '=' | '!=' | '>' | '<' | '>=' | '<=' | '~=';
 
 /**
  * Base Query Object that allows building a query against the primary API 
@@ -46,11 +36,24 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         return this._service;
     }
 
-    public where(variable: keyof U, operation: QueryOperator, value: string | number | boolean): this {
+    public where(variable: keyof U, operation: FilterQueryOperator | SearchQueryOperator, value: string | number | boolean): this {
+        switch (operation) {
+            case 'like':
+            case '~=':
+                this._queries.push(new SearchQuery(this.instance.type, <string>variable, value));
+                break;
+            default:
+                this._queries.push(new FilterQuery(this.instance.type, <string>variable, operation, value));
+                break;
+        }
+
         return this;
     }
 
     public fields(...fields: Array<keyof U>): this {
+        const data: Array<string> = fields.map<string>((object: keyof U) => <string>object);
+        this._queries.push(new FieldsQuery(this.instance.type, data));
+
         return this;
     }
 
