@@ -1,7 +1,26 @@
 import { Query } from "./query";
 
 export class DeletedQuery extends Query {
+    private readonly objects: Array<string>;
+
+    public constructor(objects: Array<string>) {
+        super();
+
+        this.objects = objects ? objects : [];
+    }
+
     public override toString(): string {
-        throw new Error("Method not implemented.");
+        let retData: string = ',';
+
+        if (this.objects.length > 0) {
+            retData = 'deleted=';
+
+            this.objects.forEach((object: string) => {
+                retData += `${object},`;
+            });
+        }
+
+        // get rid of the last element
+        return retData.slice(0, -1);
     }
 }

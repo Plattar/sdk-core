@@ -1,6 +1,10 @@
 import { CoreObject, CoreObjectAttributes } from '../core-object';
 import { Service } from '../service';
+import { QueryContainsOperator, ContainsQuery } from './queries/contains-query';
+import { DeletedQuery } from './queries/deleted-query';
+import { PaginationQuery } from './queries/pagination-query';
 import { Query } from './queries/query';
+import { QuerySortOperator, SortQuery } from './queries/sort-query';
 
 /**
  * The currently possible request types that can be made as part of a query
@@ -19,15 +23,6 @@ export type QueryFetchType = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
  * operator ~= is 'roughly equals' or 'fuzzy search'
  */
 export type QueryOperator = '==' | '=' | '!=' | '>' | '<' | '>=' | '<=' | '~=';
-export type ContainsOperator = '==' | '=' | '!=';
-
-/**
- * The operation types that can be used for sorting operations
- * 
- * operator ascending or asc is 'sort by ascending order'
- * operator descending or desc is 'sort by descending order'
- */
-export type QuerySortOperator = 'ascending' | 'descending' | 'asc' | 'desc';
 
 /**
  * Base Query Object that allows building a query against the primary API 
@@ -63,23 +58,40 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         return this;
     }
 
-    public contains(operation: ContainsOperator, ...objects: Array<typeof CoreObject>): this {
+    public contains(operation: QueryContainsOperator = '==', ...objects: Array<typeof CoreObject>): this {
+        const data: Array<string> = objects.map<string>((object: typeof CoreObject) => object.type);
+        this._queries.push(new ContainsQuery(operation, data));
+
         return this;
     }
 
     public deleted(...objects: Array<typeof CoreObject>): this {
+        const data: Array<string> = objects.map<string>((object: typeof CoreObject) => object.type);
+        this._queries.push(new DeletedQuery(data));
+
         return this;
     }
 
-    public sort(variable: keyof U, operation: QuerySortOperator): this {
+    public sort(operation: QuerySortOperator, variable: keyof U): this {
+        this._queries.push(new SortQuery(operation, this.instance.type, <string>variable));
+
+        return this;
+    }
+
+    public page(count: number, size: number): this {
+        this._queries.push(new PaginationQuery(count, size));
+
         return this;
     }
 
     protected async _Fetch(url: string, type: QueryFetchType): Promise<Array<T>> {
         const results: Array<T> = new Array<T>();
-        // generate all the query parameters to the final URL
+
         const queries: Array<Query> = this._queries;
 
+        // generate all the query parameters to the final URL (if any)
+        // some requests (like POST) will ignore certain queries as they are
+        // not processable in the provided context
         if (queries.length > 0) {
             url += '?';
 
@@ -90,6 +102,9 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
             // remove the last & keyword
             url = url.slice(0, -1);
         }
+
+        // encode the full url to safely escape all characters (like whitespaces)
+        const encodedURL: string = encodeURI(url);
 
         // proceed with generating the request - for anything other than GET we need to generate a payload
         // this payload is generated from non-null values of the object attributes
