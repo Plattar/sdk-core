@@ -21,6 +21,10 @@ export interface GeneratedProject {
     readonly npmRc: {
         readonly fname: string;
         readonly data: string;
+    };
+    readonly readme: {
+        readonly fname: string;
+        readonly data: string;
     }
 }
 
@@ -46,6 +50,10 @@ export class Project {
             npmRc: {
                 fname: '.npmrc',
                 data: "//registry.npmjs.org/:_authToken=${NPM_TOKEN}"
+            },
+            readme: {
+                fname: 'README.md',
+                data: Project.generateReadme(vars)
             }
         }
     }
@@ -122,5 +130,16 @@ export class Project {
             'tsconfig.json',
             'package-lock.json',
             '.npmrc'].join('\r\n');
+    }
+
+    public static generateReadme(vars: PackageJsonVars): string {
+        let output = `[![NPM](https://img.shields.io/npm/v/@plattar/${vars.name})](https://www.npmjs.com/package/@plattar/${vars.name})\n\n`;
+        output += `### About\n\n`;
+        output += `_${vars.name}_ v${vars.version} is automatically generated using [sdk-core](https://www.npmjs.com/package/@plattar/sdk-core) module\n\n`;
+        output += `### Installation\n\n`;
+        output += `-   Install using [npm](https://www.npmjs.com/package/@plattar/${vars.name})\n\n`;
+        output += `\`\`\`console\nnpm install @plattar/${vars.name}\n\`\`\`\n`;
+
+        return output;
     }
 }

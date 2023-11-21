@@ -21,6 +21,7 @@
     "node": ">=18.0"
   },
   "author": "plattar",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/Plattar/sdk-core/issues"
   },
