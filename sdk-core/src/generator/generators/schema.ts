@@ -126,11 +126,11 @@ export class Schema {
 
                 const mountEndpoint: string = mount.endpoint.replace(":id", "${this.instance.id}");
 
-                output += `\t\tpublic async ${meta.name}(${(isSet ? `params:${dataType}` : '')}): Promise<${className} | null> {\n`;
-                output += `\t\t\tconst url:string = \`${endpoint}${mountEndpoint}\`${isSet ? additionalQuery : ''};\n`;
-                output += `\t\t\tconst result:Array<${className}> = await this._Fetch(url, '${mount.type}');\n`;
-                output += `\t\t\treturn result.length > 0 ? result[0] : null;\n`;
-                output += '\t\t}\n';
+                output += `\tpublic async ${meta.name}(${(isSet ? `params:${dataType}` : '')}): Promise<${className} | null> {\n`;
+                output += `\t\tconst url:string = \`${endpoint}${mountEndpoint}\`${isSet ? additionalQuery : ''};\n`;
+                output += `\t\tconst result:Array<${className}> = await this._Fetch(url, '${mount.type}');\n`;
+                output += `\t\treturn result.length > 0 ? result[0] : null;\n`;
+                output += '\t}\n';
             }
         });
 
@@ -173,11 +173,11 @@ export class Schema {
                     dataType = (dataType.slice(0, -1) + '}');
                 }
 
-                output += `\t\tpublic async ${meta.name}(${(dataType ? `params:${dataType}` : '')}): Promise<${meta.returnType === "array" ? `Array<${className}>` : `${className} | null`}> {\n`;
-                output += `\t\t\tconst url:string = \`${endpoint}${mount.endpoint}\`${dataType ? additionalQuery : ''};\n`;
-                output += `\t\t\tconst result:Array<${className}> = await this._Fetch(url, '${mount.type}');\n`;
-                output += `\t\t\t${meta.returnType === "array" ? 'return result' : 'return result.length > 0 ? result[0] : null'};\n`;
-                output += '\t\t}\n';
+                output += `\tpublic async ${meta.name}(${(dataType ? `params:${dataType}` : '')}): Promise<${meta.returnType === "array" ? `Array<${className}>` : `${className} | null`}> {\n`;
+                output += `\t\tconst url:string = \`${endpoint}${mount.endpoint}\`${dataType ? additionalQuery : ''};\n`;
+                output += `\t\tconst result:Array<${className}> = await this._Fetch(url, '${mount.type}');\n`;
+                output += `\t\t${meta.returnType === "array" ? 'return result' : 'return result.length > 0 ? result[0] : null'};\n`;
+                output += '\t}\n';
             }
         });
 
