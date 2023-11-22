@@ -66,7 +66,7 @@ export class Schema {
 
         // GENERATE: the main class
         output += `export class ${className} extends CoreObject<${interfaceName}> {\n`;
-        output += '\tpublic static get type():string {\n';
+        output += '\tpublic static override get type():string {\n';
         output += `\t\treturn '${schemaInstance.apiType}';\n`;
         output += '\t}\n';
         output += `\tpublic static query(service?:Service): ${queryName}Static {\n`;
