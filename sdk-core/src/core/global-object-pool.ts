@@ -1,4 +1,4 @@
-import { type CoreObject } from './core-object';
+import { CoreObjectAttributes, type CoreObject } from './core-object';
 
 /**
  * This object provides runtime functionality to access object types for construction
@@ -23,5 +23,14 @@ export class GlobalObjectPool {
         const obj: typeof CoreObject | undefined = this._globalMap.get(key);
 
         return obj ? obj : null;
+    }
+
+    /**
+     * Generates a new instance of the object provided a key, otherwise returns null
+     */
+    public static newInstance<T extends CoreObject<CoreObjectAttributes>>(key: string): T | null {
+        const obj: typeof CoreObject | null = this.get(key);
+
+        return obj ? obj.newInstance<T>() : null;
     }
 }

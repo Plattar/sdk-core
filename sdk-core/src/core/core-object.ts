@@ -39,6 +39,10 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
         throw new Error('CoreObject.type is not implemented, contact admin');
     }
 
+    public static newInstance<T extends CoreObject<CoreObjectAttributes>>(): T {
+        return <T>(new (<any>this)());
+    }
+
     public get type(): string {
         return (<any>this.constructor).type;
     }
