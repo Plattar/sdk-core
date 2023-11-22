@@ -76,7 +76,7 @@ export class Schema {
         output += `\t\treturn new ${queryName}Dynamic(this, service);\n`;
         output += '\t}\n';
 
-        output += `}\nGlobalObjectPool.register(<any>${className});\n`;
+        output += `}\nGlobalObjectPool.register(${className});\n`;
 
         return {
             name: schemaInstance.type.replaceAll('_', '-'),

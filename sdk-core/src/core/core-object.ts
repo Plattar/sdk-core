@@ -48,6 +48,19 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
     }
 
     /**
+     * shortcut for easier chained construction of Include Queries
+     */
+    public include(...objects: Array<(typeof CoreObject<CoreObjectAttributes>) | string>): Array<string> {
+        return objects.map<string>((object: typeof CoreObject<CoreObjectAttributes> | string) => {
+            if (typeof object === 'string' || object instanceof String) {
+                return <string>object;
+            }
+
+            return `${this.type}.${object.type}`;
+        });
+    }
+
+    /**
      * Re-fills tis object instance with data from the api
      */
     public setFromAPI(data: any) {

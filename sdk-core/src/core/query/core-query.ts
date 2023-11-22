@@ -4,6 +4,7 @@ import { QueryContainsOperator, ContainsQuery } from './queries/contains-query';
 import { DeletedQuery } from './queries/deleted-query';
 import { FieldsQuery } from './queries/fields-query';
 import { FilterQuery, FilterQueryOperator } from './queries/filter-query';
+import { IncludeQuery } from './queries/include-query';
 import { PaginationQuery } from './queries/pagination-query';
 import { Query } from './queries/query';
 import { SearchQuery, SearchQueryOperator } from './queries/search-query';
@@ -57,19 +58,29 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         return this;
     }
 
-    public include(...objects: Array<typeof CoreObject>): this {
+    public include(...objects: Array<(typeof CoreObject<CoreObjectAttributes>) | string>): this {
+        const data: Array<string> = objects.map<string>((object: typeof CoreObject<CoreObjectAttributes> | string) => {
+            if (typeof object === 'string' || object instanceof String) {
+                return <string>object;
+            }
+
+            return `${this.instance.type}.${object.type}`;
+        });
+
+        this._queries.push(new IncludeQuery(data));
+
         return this;
     }
 
-    public contains(operation: QueryContainsOperator = '==', ...objects: Array<typeof CoreObject>): this {
-        const data: Array<string> = objects.map<string>((object: typeof CoreObject) => object.type);
+    public contains(operation: QueryContainsOperator = '==', ...objects: Array<typeof CoreObject<CoreObjectAttributes>>): this {
+        const data: Array<string> = objects.map<string>((object: typeof CoreObject<CoreObjectAttributes>) => object.type);
         this._queries.push(new ContainsQuery(operation, data));
 
         return this;
     }
 
-    public deleted(...objects: Array<typeof CoreObject>): this {
-        const data: Array<string> = objects.map<string>((object: typeof CoreObject) => object.type);
+    public deleted(...objects: Array<typeof CoreObject<CoreObjectAttributes>>): this {
+        const data: Array<string> = objects.map<string>((object: typeof CoreObject<CoreObjectAttributes>) => object.type);
         this._queries.push(new DeletedQuery(data));
 
         return this;
