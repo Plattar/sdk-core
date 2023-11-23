@@ -82,10 +82,10 @@ export class Generator {
     public static generateServiceFile(data: GeneratorData): GeneratedSchema {
         const className: string = `${Util.capitaliseClassName(data.package.name)}Service`;
 
-        let output: string = `import { Service, ServiceStaticContainer } from '@plattar/sdk-core';\n\n`;
+        let output: string = `import { Service, ServiceConfig, ServiceStaticContainer } from '@plattar/sdk-core';\n\n`;
 
         output += `export class ${className} extends Service {\n`;
-        output += `\tprivate static readonly serviceContainer:ServiceStaticContainer = {service:null}\n`;
+        output += `\tprivate static readonly serviceContainer: ServiceStaticContainer = {service:null}\n`;
         output += `\tpublic static override get container(): ServiceStaticContainer {\n`;
         output += `\t\treturn this.serviceContainer;\n`;
         output += `\t}\n`;
