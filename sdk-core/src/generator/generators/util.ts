@@ -5,7 +5,11 @@ export class Util {
      * my_named_class = MyNamedClass
      */
     public static capitaliseClassName(name: string): string {
-        return name.split('_').map((word: string) => {
+        const capName: string = name.split('_').map((word: string) => {
+            return word[0].toUpperCase() + word.substring(1);
+        }).join('');
+
+        return capName.split('-').map((word: string) => {
             return word[0].toUpperCase() + word.substring(1);
         }).join('');
     }

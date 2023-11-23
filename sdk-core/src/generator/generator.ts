@@ -2,6 +2,7 @@ import { CoreController } from "@plattar/api-core";
 import { GeneratedProject, PackageJsonVars, Project } from "./generators/project";
 import { GeneratedSchema, Schema } from "./generators/schema";
 import fs from "fs";
+import { Util } from "./generators/util";
 
 export interface GeneratorData {
     readonly controllers: Array<typeof CoreController>;
@@ -24,6 +25,7 @@ export class Generator {
 
         // ensure project folder exists
         fs.mkdirSync(`${outputDir}/src/schemas`, { recursive: true });
+        fs.mkdirSync(`${outputDir}/src/core`, { recursive: true });
 
         // write the .npmignore file
         await fs.promises.writeFile(`${outputDir}/${project.npmIgnore.fname}`, project.npmIgnore.data);
@@ -43,21 +45,60 @@ export class Generator {
             allSchemas.push(fs.promises.writeFile(`${outputDir}/src/schemas/${schema.fname}`, schema.data));
         });
 
+        const serviceSchema = this.generateServiceFile(data);
+
+        // write the service file
+        allSchemas.push(fs.promises.writeFile(`${outputDir}/src/core/${serviceSchema.fname}`, serviceSchema.data));
+
         await Promise.all(allSchemas);
 
         // write the index.ts file
-        await fs.promises.writeFile(`${outputDir}/src/index.ts`, this.generateIndexFile(schemas));
+        await fs.promises.writeFile(`${outputDir}/src/index.ts`, this.generateIndexFile([
+            {
+                dir: 'schemas',
+                schemas: schemas
+            },
+            {
+                dir: 'core',
+                schemas: [serviceSchema]
+            }
+        ]));
     }
 
-    private static generateIndexFile(schemas: Array<GeneratedSchema>): string {
+    private static generateIndexFile(files: Array<{ dir: string, schemas: Array<GeneratedSchema> }>): string {
         let output: string = '/*\n * Warning: Do Not Edit - Auto Generated via @plattar/sdk-core\n */\n\n';
 
-        output += 'export { Service, ServiceConfig, ServiceAuth } from "@plattar/sdk-core";\n';
+        output += `export { Service, ServiceConfig, ServiceAuth } from '@plattar/sdk-core';\n`;
 
-        schemas.forEach((schema) => {
-            output += `export * from "./schemas/${schema.name}";\n`;
+        files.forEach((schemas) => {
+            schemas.schemas.forEach((schema) => {
+                output += `export * from "./${schemas.dir}/${schema.name}";\n`;
+            });
         });
 
         return output;
+    }
+
+    public static generateServiceFile(data: GeneratorData): GeneratedSchema {
+        const className: string = `${Util.capitaliseClassName(data.package.name)}Service`;
+
+        let output: string = `import { Service, ServiceStaticContainer } from '@plattar/sdk-core';\n\n`;
+
+        output += `export class ${className} extends Service {\n`;
+        output += `\tprivate static readonly serviceContainer:ServiceStaticContainer = {service:null}\n`;
+        output += `\tpublic static override get container(): ServiceStaticContainer {\n`;
+        output += `\t\treturn this.serviceContainer;\n`;
+        output += `\t}\n`;
+        output += `\tpublic static override config(config: ServiceConfig): ${className} {\n`;
+        output += `\t\tthis.container.service = new ${className}(config);\n`;
+        output += `\t\treturn <${className}>this.container.service;\n`;
+        output += `\t}\n`;
+        output += '}\n';
+
+        return {
+            name: `${data.package.name}-service`,
+            fname: `${data.package.name}-service.ts`,
+            data: output
+        }
     }
 }

@@ -32,6 +32,15 @@ export interface ServiceConfig {
 }
 
 /**
+ * Static container used for holding the default service, since sdk-core is used
+ * in multiple projects, using an anti-pattern can become troublesome for state
+ * storage
+ */
+export interface ServiceStaticContainer {
+    service: Service | null;
+}
+
+/**
  * Locked down, immutable version of ServiceConfig with defaults already set
  */
 export interface LockedServiceConfig {
@@ -45,9 +54,7 @@ export interface LockedServiceConfig {
     }
 }
 
-export class Service {
-    private static _defaultService: Service | null = null;
-
+export abstract class Service {
     private readonly _config: LockedServiceConfig;
 
     public constructor(config: ServiceConfig) {
@@ -65,18 +72,23 @@ export class Service {
         }
     }
 
+    /**
+     * Configure a new default service
+     */
     public static config(config: ServiceConfig): Service {
-        this._defaultService = new Service(config);
-
-        return this._defaultService;
+        throw new Error('Service.config is not implemented correctly, contact admin');
     }
 
     public static get default(): Service {
-        if (!this._defaultService) {
+        if (!this.container.service) {
             throw new Error('Service.default is not configured, use Service.config() to set a new default');
         }
 
-        return this._defaultService;
+        return this.container.service;
+    }
+
+    public static get container(): ServiceStaticContainer {
+        throw new Error('Service.container is not implemented correctly, contact admin');
     }
 
     public get config(): LockedServiceConfig {
@@ -87,6 +99,6 @@ export class Service {
      * This returns the base url and versioning combined
      */
     public get url(): string {
-        return `${this.config.url}/${this.config.version}`
+        return `${this.config.url}/${this.config.version}`;
     }
 }
