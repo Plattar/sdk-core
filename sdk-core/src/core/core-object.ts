@@ -50,14 +50,29 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
     /**
      * shortcut for easier chained construction of Include Queries
      */
-    public include(...objects: Array<(typeof CoreObject<CoreObjectAttributes>) | string>): Array<string> {
-        return objects.map<string>((object: typeof CoreObject<CoreObjectAttributes> | string) => {
-            if (typeof object === 'string' || object instanceof String) {
-                return <string>object;
+    public static include(...objects: Array<(typeof CoreObject<CoreObjectAttributes>) | Array<string>>): Array<string> {
+        const data: Array<string | Array<string>> = objects.map<string | Array<string>>((object: typeof CoreObject<CoreObjectAttributes> | Array<string>) => {
+            if (Array.isArray(object)) {
+                return object.map<string>((object: string) => {
+                    return `${this.type}.${object}`;
+                });
             }
 
             return `${this.type}.${object.type}`;
         });
+
+        const consolidatedData: Array<string> = new Array<string>();
+
+        data.forEach((object: string | Array<string>) => {
+            if (Array.isArray(object)) {
+                consolidatedData.push(...object);
+            }
+            else {
+                consolidatedData.push(object);
+            }
+        });
+
+        return consolidatedData;
     }
 
     /**

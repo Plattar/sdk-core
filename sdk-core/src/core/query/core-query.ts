@@ -58,16 +58,29 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         return this;
     }
 
-    public include(...objects: Array<(typeof CoreObject<CoreObjectAttributes>) | string>): this {
-        const data: Array<string> = objects.map<string>((object: typeof CoreObject<CoreObjectAttributes> | string) => {
-            if (typeof object === 'string' || object instanceof String) {
-                return <string>object;
+    public include(...objects: Array<(typeof CoreObject<CoreObjectAttributes>) | Array<string>>): this {
+        const data: Array<string | Array<string>> = objects.map<string | Array<string>>((object: typeof CoreObject<CoreObjectAttributes> | Array<string>) => {
+            if (Array.isArray(object)) {
+                return object.map<string>((object: string) => {
+                    return `${this.instance.type}.${object}`;
+                });
             }
 
             return `${this.instance.type}.${object.type}`;
         });
 
-        this._queries.push(new IncludeQuery(data));
+        const consolidatedData: Array<string> = new Array<string>();
+
+        data.forEach((object: string | Array<string>) => {
+            if (Array.isArray(object)) {
+                consolidatedData.push(...object);
+            }
+            else {
+                consolidatedData.push(object);
+            }
+        });
+
+        this._queries.push(new IncludeQuery(consolidatedData));
 
         return this;
     }
@@ -101,24 +114,8 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
     protected async _Fetch(url: string, type: QueryFetchType): Promise<Array<T>> {
         const results: Array<T> = new Array<T>();
 
-        const queries: Array<Query> = this._queries;
-
-        // generate all the query parameters to the final URL (if any)
-        // some requests (like POST) will ignore certain queries as they are
-        // not processable in the provided context
-        if (queries.length > 0) {
-            url += '?';
-
-            queries.forEach((query: Query) => {
-                url += `${query.toString()}&`;
-            });
-
-            // remove the last & keyword
-            url = url.slice(0, -1);
-        }
-
         // encode the full url to safely escape all characters (like whitespaces)
-        const encodedURL: string = encodeURI(url);
+        const encodedURL: string = encodeURI(url + this.toString());
 
         // proceed with generating the request - for anything other than GET we need to generate a payload
         // this payload is generated from non-null values of the object attributes
@@ -126,5 +123,25 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
 
         // return the final results which might contain 0 or more objects (depending on the request)
         return results;
+    }
+
+    /**
+     * Generates the url sequence of all queries and returns
+     */
+    public toString(): string {
+        const queries: Array<Query> = this._queries;
+
+        if (queries.length <= 0) {
+            return '';
+        }
+
+        let url: string = '?';
+
+        queries.forEach((query: Query) => {
+            url += `${query.toString()}&`;
+        });
+
+        // remove the last & keyword
+        return url.slice(0, -1);
     }
 }
