@@ -80,7 +80,7 @@ export class Generator {
     }
 
     public static generateServiceFile(data: GeneratorData): GeneratedSchema {
-        const className: string = `${Util.capitaliseClassName(data.package.name)}Service`;
+        const className: string = `Connection`;
 
         let output: string = `import { Service, ServiceConfig, ServiceStaticContainer } from '@plattar/sdk-core';\n\n`;
 
@@ -96,8 +96,8 @@ export class Generator {
         output += '}\n';
 
         return {
-            name: `${data.package.name}-service`,
-            fname: `${data.package.name}-service.ts`,
+            name: `connection-service`,
+            fname: `connection-service.ts`,
             data: output
         }
     }

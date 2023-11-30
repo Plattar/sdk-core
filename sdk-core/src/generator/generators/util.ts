@@ -42,4 +42,11 @@ export class Util {
 
         return results;
     }
+
+    /**
+     * Checks if the provided object is a function
+     */
+    public static isFunction(obj: any): boolean {
+        return !!(obj && obj.constructor && obj.call && obj.apply);
+    }
 }
