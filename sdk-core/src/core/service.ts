@@ -20,8 +20,8 @@ export interface ServiceOptions {
     // NOTE: When SDK is used in browser, gzip is automatically enabled
     readonly gzip?: boolean | null;
 
-    // (optuonal) for non-secure NodeJS environments to enable/disable tls
-    // this defaults to 'false'
+    // (optional) for non-secure NodeJS environments to enable/disable tls
+    // this defaults to 'true'
     readonly tls?: boolean | null;
 
     // (optional) for error handling when api throws errors like 404, 401 etc
@@ -89,8 +89,8 @@ export abstract class Service {
             url: config.url,
             options: {
                 version: (config.options && config.options.version) ? config.options.version : 'v3',
-                tls: (config.options && config.options.tls) ? true : false,
-                gzip: (config.options && config.options.gzip) ? true : false,
+                tls: (config.options && config.options.tls) ? Util.parseBool(config.options.tls) : false,
+                gzip: (config.options && config.options.gzip) ? Util.parseBool(config.options.gzip) : false,
                 errorHandler: (config.options && config.options.errorHandler) ? config.options.errorHandler : 'console.error',
                 errorListener: (config.options && config.options.errorListener && Util.isFunction(config.options.errorListener)) ? config.options.errorListener : (_: Error) => { /* silent handler */ }
             },
@@ -99,6 +99,16 @@ export abstract class Service {
                 token: (config.auth && config.auth.token) ? config.auth.token : null
             }
         });
+
+        // set TLS options for NodeJS
+        if (Util.isNode()) {
+            if (this._config.options.tls) {
+                process.env.NODE_TLS_REJECT_UNAUTHORIZED = "1";
+            }
+            else {
+                process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+            }
+        }
     }
 
     /**
