@@ -1,3 +1,5 @@
+import { CoreObjectRelations } from "./relations/core-object-relations";
+
 /**
  * This interface will need to be implemented by the SDK generator
  */
@@ -17,16 +19,24 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
     // these attributes are filled from the remote API when a query is made
     private readonly _attributes: Attributes;
 
+    // these are a list of all objects related to this object
+    private readonly _relations: CoreObjectRelations;
+
     // every object has a unique ID assigned, this is filled by the remote API
     private _id: string | null;
 
     public constructor(id?: string | null, attributes?: Attributes) {
         this._id = id ? id : null;
         this._attributes = attributes ? attributes : <Attributes>{}
+        this._relations = new CoreObjectRelations(this);
     }
 
     public get attributes(): Attributes {
         return this._attributes;
+    }
+
+    public get relationships(): CoreObjectRelations {
+        return this._relations;
     }
 
     /**

@@ -116,85 +116,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
      * Performs the primary request and returns the responses as an array
      */
     protected async _Fetch(url: string, type: QueryFetchType): Promise<Array<T>> {
-        const results: Array<T> = new Array<T>();
-
-        // encode the full url to safely escape all characters (like whitespaces)
-        const encodedURL: string = encodeURI(url + this.toString());
-
-        // proceed with generating the request - for anything other than GET we need to generate a payload
-        // this payload is generated from non-null values of the object attributes
-        try {
-            const response: Response = await fetch(encodedURL);
-
-            let json: any = null;
-
-            try {
-                json = await response.json();
-            }
-            catch (err: any) {
-                new CoreError({
-                    error: {
-                        title: 'Runtime Error',
-                        text: `something unexpected occured during results parsing, Details (${err.message})`
-                    }
-                }).handle(this.service);
-
-                return results;
-            }
-
-            // ensure there is a json object that was parsed properly
-            if (!json) {
-                new CoreError({
-                    error: {
-                        title: 'Runtime Error',
-                        text: 'runtime expected results from fetch to be non-null'
-                    }
-                }).handle(this.service);
-
-                return results;
-            }
-
-            // check if the returned data is json error object
-            if (json.error) {
-                new CoreError(json).handle(this.service);
-
-                return results;
-            }
-
-            // ensure json has the critical data section in-tact
-            if (!json.data) {
-                new CoreError({
-                    error: {
-                        title: 'Runtime Error',
-                        text: 'runtime tried to parse malformed json data'
-                    }
-                }).handle(this.service);
-
-                return results;
-            }
-
-            // begin parsing the json, which should be the details of the current
-            // object type - this could also be an array so we'll need extra object instances
-
-        }
-        catch (err: any) {
-            if (err instanceof CoreError) {
-                err.handle(this.service);
-            }
-            else {
-                new CoreError({
-                    error: {
-                        title: 'Runtime Error',
-                        text: `something unexpected occured during runtime, Details (${err.message})`
-                    }
-                }).handle(this.service);
-            }
-
-            return results;
-        }
-
-        // return the final results which might contain 0 or more objects (depending on the request)
-        return results;
+        return CoreQuery.fetch<T>(this.service, this.instance, encodeURI(url + this.toString()), type);
     }
 
     /**
@@ -215,5 +137,84 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
 
         // remove the last & keyword
         return url.slice(0, -1);
+    }
+
+    public static async fetch<T extends CoreObject<CoreObjectAttributes>>(service: Service, instance: T, encodedURL: string, type: QueryFetchType): Promise<Array<T>> {
+        const results: Array<T> = new Array<T>();
+
+        // proceed with generating the request - for anything other than GET we need to generate a payload
+        // this payload is generated from non-null values of the object attributes
+        try {
+            const response: Response = await fetch(encodedURL);
+
+            let json: any = null;
+
+            try {
+                json = await response.json();
+            }
+            catch (err: any) {
+                new CoreError({
+                    error: {
+                        title: 'Runtime Error',
+                        text: `something unexpected occured during results parsing, Details (${err.message})`
+                    }
+                }).handle(service);
+
+                return results;
+            }
+
+            // ensure there is a json object that was parsed properly
+            if (!json) {
+                new CoreError({
+                    error: {
+                        title: 'Runtime Error',
+                        text: 'runtime expected results from fetch to be non-null'
+                    }
+                }).handle(service);
+
+                return results;
+            }
+
+            // check if the returned data is json error object
+            if (json.error) {
+                new CoreError(json).handle(service);
+
+                return results;
+            }
+
+            // ensure json has the critical data section in-tact
+            if (!json.data) {
+                new CoreError({
+                    error: {
+                        title: 'Runtime Error',
+                        text: 'runtime tried to parse malformed json data'
+                    }
+                }).handle(service);
+
+                return results;
+            }
+
+            // begin parsing the json, which should be the details of the current
+            // object type - this could also be an array so we'll need extra object instances
+
+        }
+        catch (err: any) {
+            if (err instanceof CoreError) {
+                err.handle(service);
+            }
+            else {
+                new CoreError({
+                    error: {
+                        title: 'Runtime Error',
+                        text: `something unexpected occured during runtime, Details (${err.message})`
+                    }
+                }).handle(service);
+            }
+
+            return results;
+        }
+
+        // return the final results which might contain 0 or more objects (depending on the request)
+        return results;
     }
 }

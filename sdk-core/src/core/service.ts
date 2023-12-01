@@ -33,8 +33,8 @@ export interface ServiceOptions {
     // this will be called first before errors are thrown to higher code
     readonly errorListener?: ServiceErrorListener | null;
 
-    // (optional) provide an API version to use, this defaults to 'v3'
-    readonly version?: string | null;
+    // (optional) provide an API version to use, this defaults to '3'
+    readonly version?: number | null;
 }
 
 export interface ServiceConfig {
@@ -88,7 +88,7 @@ export abstract class Service {
         this._config = Object.freeze({
             url: config.url,
             options: {
-                version: (config.options && config.options.version) ? config.options.version : 'v3',
+                version: (config.options && config.options.version) ? `v${config.options.version}` : 'v3',
                 tls: (config.options && config.options.tls) ? Util.parseBool(config.options.tls) : false,
                 gzip: (config.options && config.options.gzip) ? Util.parseBool(config.options.gzip) : false,
                 errorHandler: (config.options && config.options.errorHandler) ? config.options.errorHandler : 'console.error',
