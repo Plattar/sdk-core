@@ -3,6 +3,12 @@
  */
 export interface CoreObjectAttributes { }
 
+export interface CoreObjectPayload {
+    readonly data: {
+        readonly attributes: CoreObjectAttributes;
+    }
+}
+
 /**
  * CoreObject is the base object that all Objects in the API derive base functionality from
  */
@@ -21,6 +27,17 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
 
     public get attributes(): Attributes {
         return this._attributes;
+    }
+
+    /**
+     * Generates a JSON Payload that can be sent to a backend server
+     */
+    public get payload(): CoreObjectPayload {
+        return {
+            data: {
+                attributes: this.attributes
+            }
+        }
     }
 
     public get id(): string {

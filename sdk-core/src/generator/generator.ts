@@ -68,7 +68,7 @@ export class Generator {
     private static generateIndexFile(files: Array<{ dir: string, schemas: Array<GeneratedSchema> }>): string {
         let output: string = '/*\n * Warning: Do Not Edit - Auto Generated via @plattar/sdk-core\n */\n\n';
 
-        output += `export { Service, ServiceConfig, ServiceAuth, ServiceOptions, ServiceAuthType, ServiceErrorHandler, ServiceErrorListener } from '@plattar/sdk-core';\n`;
+        output += `export { Service, ServiceConfig, ServiceAuth, ServiceOptions, ServiceAuthType, ServiceErrorHandler, ServiceErrorListener, CoreError } from '@plattar/sdk-core';\n`;
 
         files.forEach((schemas) => {
             schemas.schemas.forEach((schema) => {
