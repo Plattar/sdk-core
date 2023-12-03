@@ -6,6 +6,7 @@ import { DeletedQuery } from './queries/deleted-query';
 import { FieldsQuery } from './queries/fields-query';
 import { FilterQuery, FilterQueryOperator } from './queries/filter-query';
 import { IncludeQuery } from './queries/include-query';
+import { JoinQuery } from './queries/join-query';
 import { PaginationQuery } from './queries/pagination-query';
 import { Query } from './queries/query';
 import { SearchQuery, SearchQueryOperator } from './queries/search-query';
@@ -45,6 +46,17 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
      */
     public abort(reason?: string): void {
         this._abort.abort(reason);
+    }
+
+    /**
+     * Allows multiple queries to be joined together
+     */
+    public join(...queries: Array<CoreQuery<CoreObject<CoreObjectAttributes>, CoreObjectAttributes>>): this {
+        queries.forEach((query: CoreQuery<CoreObject<CoreObjectAttributes>, CoreObjectAttributes>) => {
+            this._queries.push(new JoinQuery(query.toString()));
+        });
+
+        return this;
     }
 
     public where(variable: keyof U, operation: FilterQueryOperator | SearchQueryOperator, value: string | number | boolean): this {
@@ -125,7 +137,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
      * Performs the primary request and returns the responses as an array
      */
     protected async _Fetch(url: string, type: QueryFetchType): Promise<Array<T>> {
-        return CoreQuery.fetch<T>(this.service, this.instance, encodeURI(url + this.toString()), type, this._abort.signal);
+        return CoreQuery.fetch<T>(this.service, this.instance, encodeURI(`${url}?${this.toString()}`), type, this._abort.signal);
     }
 
     /**
@@ -138,7 +150,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
             return '';
         }
 
-        let url: string = '?';
+        let url: string = '';
 
         queries.forEach((query: Query) => {
             url += `${query.toString()}&`;
