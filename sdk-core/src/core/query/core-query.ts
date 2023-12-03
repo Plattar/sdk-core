@@ -260,14 +260,27 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
 
         }
         catch (err: any) {
+            // throw the signal error in case the request was canelled
+            if (abort && abort.aborted) {
+                new CoreError({
+                    error: {
+                        title: 'Aborted',
+                        text: 'request was manually aborted'
+                    }
+                }).handle(service);
+
+                return results;
+            }
+
+            // throw general errors
             if (err instanceof CoreError) {
                 err.handle(service);
             }
             else {
                 new CoreError({
                     error: {
-                        title: (err.name === 'AbortError') ? 'Aborted' : 'Runtime Error',
-                        text: (err.name === 'AbortError') ? 'request was manually aborted' : `something unexpected occured during runtime, Details (${err.message})`
+                        title: 'Runtime Error',
+                        text: `something unexpected occured during runtime, Details (${err.message})`
                     }
                 }).handle(service);
             }
