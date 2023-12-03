@@ -185,7 +185,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
             const response: Response = await fetch(encodedURL, request);
 
             if (!response.ok) {
-                new CoreError({
+                CoreError.init({
                     error: {
                         title: 'Network Error',
                         text: `there was an unexpected issue with the network`
@@ -197,7 +197,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
 
             // catch backend timeout errors for long-running requests
             if (response.status === 408) {
-                new CoreError({
+                CoreError.init({
                     error: {
                         status: 408,
                         title: 'Request Timeout',
@@ -214,10 +214,10 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
                 json = await response.json();
             }
             catch (err: any) {
-                new CoreError({
+                CoreError.init({
                     error: {
                         title: 'Runtime Error',
-                        text: `something unexpected occured during results parsing, Details (${err.message})`
+                        text: `something unexpected occured during results parsing, details - ${err.message}`
                     }
                 }).handle(service);
 
@@ -226,7 +226,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
 
             // ensure there is a json object that was parsed properly
             if (!json) {
-                new CoreError({
+                CoreError.init({
                     error: {
                         title: 'Runtime Error',
                         text: 'runtime expected json results from fetch to be non-null'
@@ -238,14 +238,14 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
 
             // check if the returned data is json error object
             if (json.error) {
-                new CoreError(json).handle(service);
+                CoreError.init(json).handle(service);
 
                 return results;
             }
 
             // ensure json has the critical data section in-tact
             if (!json.data) {
-                new CoreError({
+                CoreError.init({
                     error: {
                         title: 'Runtime Error',
                         text: 'runtime tried to parse malformed json data'
@@ -262,7 +262,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         catch (err: any) {
             // throw the signal error in case the request was canelled
             if (abort && abort.aborted) {
-                new CoreError({
+                CoreError.init({
                     error: {
                         title: 'Aborted',
                         text: 'request was manually aborted'
@@ -277,10 +277,10 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
                 err.handle(service);
             }
             else {
-                new CoreError({
+                CoreError.init({
                     error: {
                         title: 'Runtime Error',
-                        text: `something unexpected occured during runtime, Details (${err.message})`
+                        text: `something unexpected occured during runtime, details - ${err.message}`
                     }
                 }).handle(service);
             }

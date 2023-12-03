@@ -17,6 +17,10 @@ export class CoreError extends Error {
         this._json = json;
     }
 
+    public static init(json: JsonError): CoreError {
+        return new CoreError(json);
+    }
+
     public get status(): number {
         return this._json.error.status ? this._json.error.status : 0;
     }
