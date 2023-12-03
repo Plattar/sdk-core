@@ -15,7 +15,7 @@ export class RelationCache {
     /**
      * Checks the current status of the provided object type's cache
      */
-    public checkCacheStatus(objectType: typeof CoreObject): boolean {
+    public checkStatus(objectType: typeof CoreObject): boolean {
         const state: RelationCacheState | undefined = this._cache.get(objectType.type);
 
         return state ? state.fetched : false;
@@ -104,7 +104,7 @@ export class CoreObjectRelations {
      */
     public async get<T extends CoreObject<CoreObjectAttributes>>(objectType: typeof CoreObject, search?: QuerySearch<T> | null, service?: Service | null): Promise<Array<T>> {
         // if cache is available, quickly return
-        if (this.cache.checkCacheStatus(objectType)) {
+        if (this.cache.checkStatus(objectType)) {
             return this.cache.get(objectType, search);
         }
 

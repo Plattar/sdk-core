@@ -23,11 +23,13 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
     private readonly _instance: T;
     private readonly _service: Service;
     private readonly _queries: Array<Query>;
+    private readonly _abort: AbortController;
 
     public constructor(instance: T, service?: Service) {
         this._instance = instance;
         this._service = service ? service : Service.default;
         this._queries = new Array<Query>();
+        this._abort = new AbortController();
     }
 
     public get instance(): T {
@@ -36,6 +38,13 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
 
     public get service(): Service {
         return this._service;
+    }
+
+    /**
+     * Call this to abort/terminate incomplete query requests
+     */
+    public abort(reason?: string): void {
+        this._abort.abort(reason);
     }
 
     public where(variable: keyof U, operation: FilterQueryOperator | SearchQueryOperator, value: string | number | boolean): this {
@@ -116,7 +125,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
      * Performs the primary request and returns the responses as an array
      */
     protected async _Fetch(url: string, type: QueryFetchType): Promise<Array<T>> {
-        return CoreQuery.fetch<T>(this.service, this.instance, encodeURI(url + this.toString()), type);
+        return CoreQuery.fetch<T>(this.service, this.instance, encodeURI(url + this.toString()), type, this._abort.signal);
     }
 
     /**
@@ -139,13 +148,65 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         return url.slice(0, -1);
     }
 
-    public static async fetch<T extends CoreObject<CoreObjectAttributes>>(service: Service, instance: T, encodedURL: string, type: QueryFetchType): Promise<Array<T>> {
+    public static async fetch<T extends CoreObject<CoreObjectAttributes>>(service: Service, instance: T, encodedURL: string, type: QueryFetchType, abort?: AbortSignal): Promise<Array<T>> {
         const results: Array<T> = new Array<T>();
+
+        // init our request type
+        const request: RequestInit = {
+            method: type,
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            redirect: 'follow',
+            referrerPolicy: 'origin'
+        };
+
+        // send the payload if performing POST/PUT/PATCH requests
+        switch (type) {
+            case 'POST':
+            case 'PUT':
+            case 'PATCH':
+                request.body = JSON.stringify(instance.payload);
+                break;
+        }
+
+        // set the abort signal to terminate the query if needed
+        if (abort) {
+            request.signal = abort;
+        }
 
         // proceed with generating the request - for anything other than GET we need to generate a payload
         // this payload is generated from non-null values of the object attributes
         try {
-            const response: Response = await fetch(encodedURL);
+            const response: Response = await fetch(encodedURL, request);
+
+            if (!response.ok) {
+                new CoreError({
+                    error: {
+                        title: 'Network Error',
+                        text: `there was an unexpected issue with the network`
+                    }
+                }).handle(service);
+
+                return results;
+            }
+
+            // catch backend timeout errors for long-running requests
+            if (response.status === 408) {
+                new CoreError({
+                    error: {
+                        status: 408,
+                        title: 'Request Timeout',
+                        text: `request timed out`
+                    }
+                }).handle(service);
+
+                return results;
+            }
 
             let json: any = null;
 
@@ -168,7 +229,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
                 new CoreError({
                     error: {
                         title: 'Runtime Error',
-                        text: 'runtime expected results from fetch to be non-null'
+                        text: 'runtime expected json results from fetch to be non-null'
                     }
                 }).handle(service);
 
@@ -205,13 +266,11 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
             else {
                 new CoreError({
                     error: {
-                        title: 'Runtime Error',
-                        text: `something unexpected occured during runtime, Details (${err.message})`
+                        title: (err.name === 'AbortError') ? 'Aborted' : 'Runtime Error',
+                        text: (err.name === 'AbortError') ? 'request was manually aborted' : `something unexpected occured during runtime, Details (${err.message})`
                     }
                 }).handle(service);
             }
-
-            return results;
         }
 
         // return the final results which might contain 0 or more objects (depending on the request)
