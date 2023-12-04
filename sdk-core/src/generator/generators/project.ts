@@ -1,4 +1,4 @@
-import version from "../../version";
+import version from '../../version';
 
 export interface PackageJsonVars {
     readonly name: string;
@@ -15,6 +15,10 @@ export interface GeneratedProject {
         readonly data: string;
     };
     readonly npmIgnore: {
+        readonly fname: string;
+        readonly data: string;
+    };
+    readonly webpack: {
         readonly fname: string;
         readonly data: string;
     };
@@ -43,13 +47,17 @@ export class Project {
                 fname: 'tsconfig.json',
                 data: JSON.stringify(Project.generateTsConfig(), null, 2)
             },
+            webpack: {
+                fname: 'webpack.config.js',
+                data: Project.generateWebpackConfig(vars)
+            },
             npmIgnore: {
                 fname: '.npmignore',
                 data: Project.generateNpmIgnore()
             },
             npmRc: {
                 fname: '.npmrc',
-                data: "//registry.npmjs.org/:_authToken=${NPM_TOKEN}"
+                data: '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'
             },
             readme: {
                 fname: 'README.md',
@@ -61,17 +69,63 @@ export class Project {
     /**
      * Generates the package.json file for the new project
      */
+    public static generateWebpackConfig(vars: PackageJsonVars): any {
+        const webpack = `{
+            name: '${vars.name}',
+            mode: 'production',
+            devtool: 'source-map',
+            entry: {
+                main: ['./dist/index.js']
+            },
+            output: {
+                path: path.resolve(__dirname, './build'),
+                filename: "bundle.min.js"
+            },
+            module: {},
+            plugins: [
+                new CleanWebpackPlugin()
+            ],
+            optimization: {
+                minimize: true,
+                minimizer: [
+                    new TerserPlugin({
+                        terserOptions: {
+                            format: {
+                                comments: false,
+                            },
+                            keep_classnames: true,
+                            keep_fnames: false,
+                            sourceMap: true
+                        },
+                        extractComments: false
+                    }),
+                ],
+            }
+        }`;
+
+        let output = `const { CleanWebpackPlugin } = require('clean-webpack-plugin');\n`;
+        output += `const TerserPlugin = require("terser-webpack-plugin");\n`;
+        output += `const path = require("path");\n\n`;
+
+        return `${output}\nmodule.exports=${webpack}\n`;
+    }
+
+    /**
+     * Generates the package.json file for the new project
+     */
     public static generatePackageJson(vars: PackageJsonVars): any {
         return {
-            name: '@plattar/' + vars.name,
+            name: `@plattar/${vars.name}`,
             version: vars.version,
-            description: 'Generated using @plattar/sdk-core and used for interfacing with ' + vars.name + ' backend service',
+            description: `Generated using @plattar/sdk-core and used for interfacing with ${vars.name} backend service`,
             main: 'dist/index.js',
             module: 'dist/index.js',
             types: 'dist/index.d.ts',
+            sideEffects: false,
             scripts: {
-                clean: 'rm -rf dist node_modules package-lock.json && npm cache clean --force',
-                build: 'npm install && npm run build-ts',
+                'webpack:build': 'webpack',
+                clean: 'rm -rf dist build node_modules package-lock.json && npm cache clean --force',
+                build: 'npm install && npm run build-ts && npm run webpack:build',
                 'build-ts': 'tsc --noEmitOnError',
                 'clean:build': 'npm run clean && npm run build',
             },
@@ -89,10 +143,13 @@ export class Project {
             },
             homepage: 'https://www.plattar.com',
             dependencies: {
-                '@plattar/sdk-core': '^' + version,
+                '@plattar/sdk-core': `^${version}`,
             },
             devDependencies: {
-                typescript: '^5.2.2'
+                typescript: '^5.3.2',
+                webpack: '^5.89.0',
+                'webpack-cli': '^5.1.4',
+                'clean-webpack-plugin': '^4.0.0',
             },
             publishConfig: {
                 access: 'public',

@@ -33,6 +33,8 @@ export class Generator {
         await fs.promises.writeFile(`${outputDir}/${project.packageJson.fname}`, project.packageJson.data);
         // write the .tsconfig file
         await fs.promises.writeFile(`${outputDir}/${project.tsConfig.fname}`, project.tsConfig.data);
+        // write the .webpack.config.js file
+        await fs.promises.writeFile(`${outputDir}/${project.webpack.fname}`, project.webpack.data);
         // write the README.md file
         await fs.promises.writeFile(`${outputDir}/${project.readme.fname}`, project.readme.data);
 

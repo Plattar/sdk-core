@@ -5,6 +5,23 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./runtime": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./generator": {
+      "require": "./dist/generator/index.js",
+      "import": "./dist/generator/index.js",
+      "types": "./dist/generator/index.d.ts"
+    }
+  },
   "scripts": {
     "clean": "rm -rf dist node_modules package-lock.json generated && npm cache clean --force",
     "build": "npm install && npm run build-ts",
