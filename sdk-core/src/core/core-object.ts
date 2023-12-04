@@ -1,3 +1,4 @@
+import { GlobalObjectPool } from "./global-object-pool";
 import { CoreObjectRelations } from "./relations/core-object-relations";
 
 /**
@@ -26,7 +27,7 @@ export interface FetchData {
         readonly attributes: any;
         readonly relationships: any;
     };
-    readonly includes: Array<any>;
+    readonly includes: Map<string, any>;
     readonly cache: Map<string, CoreObject<CoreObjectAttributes>>;
 }
 
@@ -134,18 +135,82 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
             throw new Error(`CoreObject.setFromAPI() - type mismatch, cannot set ${this.type} from data type ${data.object.type}`);
         }
 
-        // assign the ID
+        // clear all previous cache as new object is getting constructed
+        this.relationships.cache.clear();
+
+        // assign the ID from the record
         this._id = data.object.id;
 
         // delete all previous keys from our object instance
         Object.keys(this._attributes).forEach(key => delete (<any>(this._attributes))[key]);
 
         // assign new keys to our attributes
+        // NOTE: this could probably be optimized by using attributes directly instead of deep-copy
         for (const [key, value] of Object.entries(data.object.attributes)) {
             (<any>(this._attributes))[key] = value;
         }
 
         // we need to build the relationships of this object from the records section
         // which includes all the records from any include query
+        for (const [_key, value] of Object.entries(data.object.relationships)) {
+            const relationRecord: any = (<any>value).data;
+
+            // check if the object exists in the includes section - the value
+            // can either be a single object or an array
+            // this only contains id or type but not the full record
+            if (Array.isArray(relationRecord)) {
+                const arrayRecord: Array<any> = relationRecord;
+
+                arrayRecord.forEach((record: any) => {
+                    this._CreateRecord(data, record);
+                });
+            }
+            else {
+                this._CreateRecord(data, relationRecord);
+            }
+        }
+    }
+
+    /**
+     * internal use function by setFromAPI that constructs a new record
+     */
+    private _CreateRecord(data: FetchData, record: any): void {
+        const includedRecord: any = data.includes.get(record.id);
+
+        // quick exit - we don't need to do anything if record doesn't exist
+        // and doesn't want to be constructed
+        if (!includedRecord) {
+            return;
+        }
+
+        // check the cache to see if this record was previously constructed
+        // if so, we use that and quick exit
+        const cachedRecord: CoreObject<CoreObjectAttributes> | undefined = data.cache.get(record.id);
+
+        if (cachedRecord) {
+            this.relationships.cache.append(cachedRecord);
+
+            return;
+        }
+
+        // otherwise, create a new record and add it as a relation
+        const newObject: CoreObject<CoreObjectAttributes> | null = GlobalObjectPool.newInstance(record.type);
+
+        if (!newObject) {
+            throw new Error(`record constructor is unable to create a new record of type ${record.type}`);
+        }
+
+        // add the new object into the cache
+        data.cache.set(record.id, newObject);
+
+        // recursively construct the new object
+        newObject.setFromAPI({
+            object: record,
+            includes: data.includes,
+            cache: data.cache
+        });
+
+        // add as a relationship to the current object
+        this.relationships.cache.append(newObject);
     }
 }

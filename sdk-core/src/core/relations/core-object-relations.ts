@@ -4,21 +4,14 @@ import { Service } from "../service";
 
 export type QuerySearch<T extends CoreObject<CoreObjectAttributes>> = (object: T) => boolean;
 
-interface RelationCacheState {
-    fetched: boolean;
-    objects: Array<CoreObject<CoreObjectAttributes>> | null;
-}
-
 export class RelationCache {
-    private readonly _cache: Map<string, RelationCacheState> = new Map<string, RelationCacheState>();
+    private readonly _cache: Map<string, Array<CoreObject<CoreObjectAttributes>>> = new Map<string, Array<CoreObject<CoreObjectAttributes>>>();
 
     /**
      * Checks the current status of the provided object type's cache
      */
     public checkStatus(objectType: typeof CoreObject): boolean {
-        const state: RelationCacheState | undefined = this._cache.get(objectType.type);
-
-        return state ? state.fetched : false;
+        return this._cache.has(objectType.type);
     }
 
     /**
@@ -41,8 +34,23 @@ export class RelationCache {
     /**
      * Adds a new object of type as a relation into the cache
      */
-    public put(objectType: typeof CoreObject, objects: Array<CoreObject<CoreObjectAttributes>>): void {
-        this._cache.set(objectType.type, { fetched: true, objects: objects });
+    public put(objectType: string, objects: Array<CoreObject<CoreObjectAttributes>>): void {
+        this._cache.set(objectType, objects);
+    }
+
+    /**
+     * Appends a new record into an existing relationship list
+     */
+    public append(object: CoreObject<CoreObjectAttributes>): void {
+        const previousRecords: Array<CoreObject<CoreObjectAttributes>> | undefined = this._cache.get(object.type);
+
+        if (previousRecords) {
+            previousRecords.push(object);
+            return;
+        }
+
+        // otherwise create a new record
+        this.put(object.type, [object]);
     }
 
     /**
@@ -50,15 +58,14 @@ export class RelationCache {
      */
     public get<T extends CoreObject<CoreObjectAttributes>>(objectType: typeof CoreObject, search?: QuerySearch<T> | null, optArr?: Array<T> | null): Array<T> {
         const results: Array<T> = optArr || new Array<T>();
+        const state: Array<CoreObject<CoreObjectAttributes>> | undefined = this._cache.get(objectType.type);
 
-        const state: RelationCacheState | undefined = this._cache.get(objectType.type);
-
-        if (!state || !state.objects || state.objects.length <= 0) {
+        if (!state || state.length <= 0) {
             return results;
         }
 
         if (search) {
-            state.objects.forEach((object) => {
+            state.forEach((object) => {
                 try {
                     if (search(<T>object)) {
                         results.push(<T>object);
@@ -68,7 +75,7 @@ export class RelationCache {
             });
         }
         else {
-            results.push(...<Array<T>>state.objects);
+            results.push(...<Array<T>>state);
         }
 
         return results;
@@ -114,7 +121,7 @@ export class CoreObjectRelations {
         const results: Array<T> = await CoreQuery.fetch(connection, objectType.newInstance(), `${connection.url}/${this._instance.type}/${this._instance.id}/${objectType.type}`, 'GET');
 
         // add the results into the cache
-        this.cache.put(objectType, results);
+        this.cache.put(objectType.type, results);
 
         // return the final results from the cache
         return this.cache.get(objectType, search);

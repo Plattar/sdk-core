@@ -268,6 +268,17 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
                 return results;
             }
 
+            // map includes query into a map structure
+            const includes: Array<any> = json.included || new Array<any>();
+            const includesMap: Map<string, any> = new Map<string, any>();
+
+            // fill in the includes map for faster Lookup when creating object hierarchies
+            includes.forEach((includesRecord: any) => {
+                if (includesRecord.id) {
+                    includesMap.set(includesRecord.id, includesRecord);
+                }
+            });
+
             // begin parsing the json, which should be the details of the current
             // object type - this could also be an array so we'll need extra object instances
             // if Array - we are dealing with multiple records, otherwise its a single record
@@ -283,7 +294,6 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
                 // consecutive results will be created dynamically
                 // we create a global LUT cache to keep track of recursions
                 const cache: Map<string, CoreObject<CoreObjectAttributes>> = new Map<string, CoreObject<CoreObjectAttributes>>();
-                const includes: Array<any> = json.included || new Array<any>();
                 const object: any = listRecords[0];
 
                 // add the first object to the instance
@@ -292,7 +302,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
                 // construct the first object
                 instance.setFromAPI({
                     object: object,
-                    includes: includes,
+                    includes: includesMap,
                     cache: cache
                 });
 
@@ -301,7 +311,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
                 // begin construction of every other instance
                 for (let i = 1; i < listRecords.length; i++) {
                     const record = listRecords[i];
-                    const objectInstance: CoreObject<CoreObjectAttributes> | null = GlobalObjectPool.newInstance(record.type);
+                    const objectInstance: CoreObject<CoreObjectAttributes> | null = cache.get(object.id) || GlobalObjectPool.newInstance(record.type);
 
                     if (!objectInstance) {
                         CoreError.init({
@@ -319,7 +329,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
 
                     objectInstance.setFromAPI({
                         object: listRecords[i],
-                        includes: includes,
+                        includes: includesMap,
                         cache: cache
                     });
 
@@ -339,7 +349,6 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
                 // consecutive results will be created dynamically
                 // we create a global LUT cache to keep track of recursions
                 const cache: Map<string, CoreObject<CoreObjectAttributes>> = new Map<string, CoreObject<CoreObjectAttributes>>();
-                const includes: Array<any> = json.included || new Array<any>();
 
                 // add the first object to the instance
                 cache.set(record.id, instance);
@@ -347,7 +356,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
                 // construct the first object
                 instance.setFromAPI({
                     object: record,
-                    includes: includes,
+                    includes: includesMap,
                     cache: cache
                 });
 
