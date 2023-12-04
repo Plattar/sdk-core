@@ -59,14 +59,14 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         return this;
     }
 
-    public where(variable: keyof U, operation: FilterQueryOperator | SearchQueryOperator, value: string | number | boolean): this {
+    public where(variable: keyof U, operation: FilterQueryOperator | SearchQueryOperator, value: string | number | boolean | Date): this {
         switch (operation) {
             case 'like':
             case '~=':
-                this._queries.push(new SearchQuery(this.instance.type, <string>variable, value));
+                this._queries.push(new SearchQuery(this.instance.type, <string>variable, (value instanceof Date ? value.toISOString() : value)));
                 break;
             default:
-                this._queries.push(new FilterQuery(this.instance.type, <string>variable, operation, value));
+                this._queries.push(new FilterQuery(this.instance.type, <string>variable, operation, (value instanceof Date ? value.toISOString() : value)));
                 break;
         }
 
