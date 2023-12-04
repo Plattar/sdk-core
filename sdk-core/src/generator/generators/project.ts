@@ -1,4 +1,5 @@
 import version from '../../version';
+import { Util } from './util';
 
 export interface PackageJsonVars {
     readonly name: string;
@@ -70,44 +71,25 @@ export class Project {
      * Generates the package.json file for the new project
      */
     public static generateWebpackConfig(vars: PackageJsonVars): any {
-        const webpack = `{
-            name: '${vars.name}',
-            mode: 'production',
-            devtool: 'source-map',
-            entry: {
-                main: ['./dist/index.js']
-            },
-            output: {
-                path: path.resolve(__dirname, './build'),
-                filename: "bundle.min.js"
-            },
-            module: {},
-            plugins: [
-                new CleanWebpackPlugin()
-            ],
-            optimization: {
-                minimize: true,
-                minimizer: [
-                    new TerserPlugin({
-                        terserOptions: {
-                            format: {
-                                comments: false,
-                            },
-                            keep_classnames: true,
-                            keep_fnames: false,
-                            sourceMap: true
-                        },
-                        extractComments: false
-                    }),
-                ],
-            }
-        }`;
-
         let output = `const { CleanWebpackPlugin } = require('clean-webpack-plugin');\n`;
-        output += `const TerserPlugin = require("terser-webpack-plugin");\n`;
         output += `const path = require("path");\n\n`;
+        output += `module.exports = {\n`;
+        output += `\t name: '${vars.name}',\n`;
+        output += `\t mode: 'production',\n`;
+        output += `\t devtool: 'source-map',\n`;
+        output += `\t entry: './dist/index.js',\n`;
+        output += `\t output: {\n`;
+        output += `\t\t library: '${Util.capitaliseClassName(vars.name.replaceAll('-', '_'))}',\n`;
+        output += `\t\t filename: 'bundle.min.js',\n`;
+        output += `\t\t path: path.resolve(__dirname, './build')\n`;
+        output += `\t },\n`;
+        output += `\t plugins: [new CleanWebpackPlugin()],\n`;
+        output += `\t optimization: {\n`;
+        output += `\t\t minimize: true\n`;
+        output += `\t }\n`;
+        output += `}\n`;
 
-        return `${output}\nmodule.exports=${webpack}\n`;
+        return output;
     }
 
     /**
@@ -121,7 +103,6 @@ export class Project {
             main: 'dist/index.js',
             module: 'dist/index.js',
             types: 'dist/index.d.ts',
-            sideEffects: false,
             scripts: {
                 'webpack:build': 'webpack',
                 clean: 'rm -rf dist build node_modules package-lock.json && npm cache clean --force',
