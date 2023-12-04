@@ -2,7 +2,6 @@ import { CoreController } from "@plattar/api-core";
 import { GeneratedProject, PackageJsonVars, Project } from "./generators/project";
 import { GeneratedSchema, Schema } from "./generators/schema";
 import fs from "fs";
-import { Util } from "./generators/util";
 
 export interface GeneratorData {
     readonly controllers: Array<typeof CoreController>;
@@ -25,7 +24,6 @@ export class Generator {
 
         // ensure project folder exists
         fs.mkdirSync(`${outputDir}/src/schemas`, { recursive: true });
-        fs.mkdirSync(`${outputDir}/src/core`, { recursive: true });
 
         // write the .npmignore file
         await fs.promises.writeFile(`${outputDir}/${project.npmIgnore.fname}`, project.npmIgnore.data);
@@ -45,11 +43,6 @@ export class Generator {
             allSchemas.push(fs.promises.writeFile(`${outputDir}/src/schemas/${schema.fname}`, schema.data));
         });
 
-        const serviceSchema = this.generateServiceFile(data);
-
-        // write the service file
-        allSchemas.push(fs.promises.writeFile(`${outputDir}/src/core/${serviceSchema.fname}`, serviceSchema.data));
-
         await Promise.all(allSchemas);
 
         // write the index.ts file
@@ -57,10 +50,6 @@ export class Generator {
             {
                 dir: 'schemas',
                 schemas: schemas
-            },
-            {
-                dir: 'core',
-                schemas: [serviceSchema]
             }
         ]));
     }
@@ -77,28 +66,5 @@ export class Generator {
         });
 
         return output;
-    }
-
-    public static generateServiceFile(data: GeneratorData): GeneratedSchema {
-        const className: string = `Connection`;
-
-        let output: string = `import { Service, ServiceConfig, ServiceStaticContainer } from '@plattar/sdk-core';\n\n`;
-
-        output += `export class ${className} extends Service {\n`;
-        output += `\tprivate static readonly serviceContainer: ServiceStaticContainer = {service:null}\n`;
-        output += `\tpublic static override get container(): ServiceStaticContainer {\n`;
-        output += `\t\treturn this.serviceContainer;\n`;
-        output += `\t}\n`;
-        output += `\tpublic static override config(config: ServiceConfig): ${className} {\n`;
-        output += `\t\tthis.container.service = new ${className}(config);\n`;
-        output += `\t\treturn <${className}>this.container.service;\n`;
-        output += `\t}\n`;
-        output += '}\n';
-
-        return {
-            name: `connection`,
-            fname: `connection.ts`,
-            data: output
-        }
     }
 }
