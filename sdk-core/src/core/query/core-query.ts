@@ -1,4 +1,5 @@
 import { CoreObject, CoreObjectAttributes } from '../core-object';
+import { GlobalObjectPool } from '../global-object-pool';
 import { Service } from '../service';
 import { CoreError } from './errors/core-error';
 import { QueryContainsOperator, ContainsQuery } from './queries/contains-query';
@@ -269,7 +270,89 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
 
             // begin parsing the json, which should be the details of the current
             // object type - this could also be an array so we'll need extra object instances
+            // if Array - we are dealing with multiple records, otherwise its a single record
+            if (Array.isArray(json.data)) {
+                const listRecords: Array<any> = json.data;
 
+                // we don't have ANY results, return an empty array
+                if (listRecords.length <= 0) {
+                    return results;
+                }
+
+                // otherwise, the first result will be our current instance and any
+                // consecutive results will be created dynamically
+                // we create a global LUT cache to keep track of recursions
+                const cache: Map<string, CoreObject<CoreObjectAttributes>> = new Map<string, CoreObject<CoreObjectAttributes>>();
+                const includes: Array<any> = json.included || new Array<any>();
+                const object: any = listRecords[0];
+
+                // add the first object to the instance
+                cache.set(object.id, instance);
+
+                // construct the first object
+                instance.setFromAPI({
+                    object: object,
+                    includes: includes,
+                    cache: cache
+                });
+
+                results.push(instance);
+
+                // begin construction of every other instance
+                for (let i = 1; i < listRecords.length; i++) {
+                    const record = listRecords[i];
+                    const objectInstance: CoreObject<CoreObjectAttributes> | null = GlobalObjectPool.newInstance(record.type);
+
+                    if (!objectInstance) {
+                        CoreError.init({
+                            error: {
+                                title: 'Runtime Error',
+                                text: `runtime could not create a new instance of object type ${record.type} at index ${i}`
+                            }
+                        }).handle(service);
+
+                        continue;
+                    }
+
+                    // add the first object to the instance
+                    cache.set(record.id, objectInstance);
+
+                    objectInstance.setFromAPI({
+                        object: listRecords[i],
+                        includes: includes,
+                        cache: cache
+                    });
+
+                    results.push(<T>objectInstance);
+                }
+            }
+            else {
+                // handle single record types
+                const record: any = json.data;
+
+                // we don't have ANY results, return an empty array
+                if (!record.type || !record.id) {
+                    return results;
+                }
+
+                // otherwise, the first result will be our current instance and any
+                // consecutive results will be created dynamically
+                // we create a global LUT cache to keep track of recursions
+                const cache: Map<string, CoreObject<CoreObjectAttributes>> = new Map<string, CoreObject<CoreObjectAttributes>>();
+                const includes: Array<any> = json.included || new Array<any>();
+
+                // add the first object to the instance
+                cache.set(record.id, instance);
+
+                // construct the first object
+                instance.setFromAPI({
+                    object: record,
+                    includes: includes,
+                    cache: cache
+                });
+
+                results.push(instance);
+            }
         }
         catch (err: any) {
             // throw the signal error in case the request was canelled

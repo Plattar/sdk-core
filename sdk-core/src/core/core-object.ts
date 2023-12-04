@@ -12,6 +12,25 @@ export interface CoreObjectPayload {
 }
 
 /**
+ * This is input from the fetch operation with the required data to construct this object and all
+ * internal hierarcies
+ * 
+ * data - the primary data that belongs to this object
+ * records - a global list of additional records that might belong to this object (will be filtered)
+ * cache - a global cache map to break recursion so multiple object of same type are not created
+ */
+export interface FetchData {
+    readonly object: {
+        readonly id: string;
+        readonly type: string;
+        readonly attributes: any;
+        readonly relationships: any;
+    };
+    readonly includes: Array<any>;
+    readonly cache: Map<string, CoreObject<CoreObjectAttributes>>;
+}
+
+/**
  * CoreObject is the base object that all Objects in the API derive base functionality from
  */
 export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
@@ -104,22 +123,29 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
 
     /**
      * Re-fills tis object instance with data from the api
+     * 
+     * data - the primary data that belongs to this object
+     * records - a global list of additional records that might belong to this object (will be filtered)
+     * cache - a global cache map to break recursion so multiple object of same type are not created
      */
-    public setFromAPI(data: any) {
+    public setFromAPI(data: FetchData) {
         // error out if we try to write the data from the api into the wrong type
-        if (this.type !== data.type) {
-            throw new Error(`CoreObject.setFromAPI() - type mismatch, cannot set ${this.type} from data type ${data.type}`);
+        if (this.type !== data.object.type) {
+            throw new Error(`CoreObject.setFromAPI() - type mismatch, cannot set ${this.type} from data type ${data.object.type}`);
         }
 
         // assign the ID
-        this._id = data.id;
+        this._id = data.object.id;
 
         // delete all previous keys from our object instance
         Object.keys(this._attributes).forEach(key => delete (<any>(this._attributes))[key]);
 
         // assign new keys to our attributes
-        for (const [key, value] of Object.entries(data.attributes)) {
+        for (const [key, value] of Object.entries(data.object.attributes)) {
             (<any>(this._attributes))[key] = value;
         }
+
+        // we need to build the relationships of this object from the records section
+        // which includes all the records from any include query
     }
 }
