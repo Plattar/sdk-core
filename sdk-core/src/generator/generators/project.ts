@@ -167,7 +167,8 @@ export class Project {
             'node_modules/',
             'tsconfig.json',
             'package-lock.json',
-            '.npmrc'].join('\r\n');
+            '.npmrc',
+            'webpack.config.js'].join('\r\n');
     }
 
     public static generateReadme(vars: PackageJsonVars): string {
