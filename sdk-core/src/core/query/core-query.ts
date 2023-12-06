@@ -195,7 +195,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         // proceed with generating the request - for anything other than GET we need to generate a payload
         // this payload is generated from non-null values of the object attributes
         try {
-            const response: Response = await fetch(encodedURL, request);
+            const response: Response = await fetch(`${service.config.url}${encodedURL}`, request);
 
             if (!response.ok) {
                 CoreError.init({
