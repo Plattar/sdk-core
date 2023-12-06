@@ -176,7 +176,9 @@ export class Project {
         output += `_${vars.name}_ v${vars.version} is automatically generated using [sdk-core](https://www.npmjs.com/package/@plattar/sdk-core) module\n\n`;
         output += `### Installation\n\n`;
         output += `-   Install using [npm](https://www.npmjs.com/package/@plattar/${vars.name})\n\n`;
-        output += `\`\`\`console\nnpm install @plattar/${vars.name}\n\`\`\`\n`;
+        output += `\`\`\`console\nnpm install @plattar/${vars.name}\n\`\`\`\n\n`;
+        output += `### JSDelivr\n\n`;
+        output += `-   Minified Bundle \`https://cdn.jsdelivr.net/npm/@plattar/${vars.name}/build/bundle.min.js\`\n`;
 
         return output;
     }
