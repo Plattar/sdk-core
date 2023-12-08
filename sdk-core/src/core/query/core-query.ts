@@ -138,7 +138,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
      * Performs the primary request and returns the responses as an array
      */
     protected async _Fetch(url: string, type: QueryFetchType): Promise<Array<T>> {
-        return CoreQuery.fetch<T>(this.service, this.instance, encodeURI(`${url}?${this.toString()}`), type, this._abort.signal);
+        return CoreQuery.fetch<T>(this.service, this.instance, encodeURI(`${url}${this._queries.length > 0 ? `?${this.toString()}` : ''}`), type, this._abort.signal);
     }
 
     /**

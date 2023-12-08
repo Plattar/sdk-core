@@ -146,27 +146,31 @@ export abstract class CoreObject<Attributes extends CoreObjectAttributes> {
 
         // assign new keys to our attributes
         // NOTE: this could probably be optimized by using attributes directly instead of deep-copy
-        for (const [key, value] of Object.entries(data.object.attributes)) {
-            (<any>(this._attributes))[key] = value;
+        if (data.object.attributes) {
+            for (const [key, value] of Object.entries(data.object.attributes)) {
+                (<any>(this._attributes))[key] = value;
+            }
         }
 
         // we need to build the relationships of this object from the records section
         // which includes all the records from any include query
-        for (const [_key, value] of Object.entries(data.object.relationships)) {
-            const relationRecord: any = (<any>value).data;
+        if (data.object.relationships) {
+            for (const [_key, value] of Object.entries(data.object.relationships)) {
+                const relationRecord: any = (<any>value).data;
 
-            // check if the object exists in the includes section - the value
-            // can either be a single object or an array
-            // this only contains id or type but not the full record
-            if (Array.isArray(relationRecord)) {
-                const arrayRecord: Array<any> = relationRecord;
+                // check if the object exists in the includes section - the value
+                // can either be a single object or an array
+                // this only contains id or type but not the full record
+                if (Array.isArray(relationRecord)) {
+                    const arrayRecord: Array<any> = relationRecord;
 
-                arrayRecord.forEach((record: any) => {
-                    this._CreateRecord(data, record);
-                });
-            }
-            else {
-                this._CreateRecord(data, relationRecord);
+                    arrayRecord.forEach((record: any) => {
+                        this._CreateRecord(data, record);
+                    });
+                }
+                else {
+                    this._CreateRecord(data, relationRecord);
+                }
             }
         }
     }
