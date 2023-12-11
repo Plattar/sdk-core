@@ -74,7 +74,7 @@ export class Project {
         let output = `const { CleanWebpackPlugin } = require('clean-webpack-plugin');\n`;
         output += `const path = require("path");\n\n`;
         output += `module.exports = {\n`;
-        output += `\t name: '${vars.name}',\n`;
+        output += `\t name: '${vars.name}-sdk',\n`;
         output += `\t mode: 'production',\n`;
         output += `\t devtool: 'source-map',\n`;
         output += `\t entry: './dist/index.js',\n`;
@@ -97,7 +97,7 @@ export class Project {
      */
     public static generatePackageJson(vars: PackageJsonVars): any {
         return {
-            name: `@plattar/${vars.name}`,
+            name: `@plattar/${vars.name}-sdk`,
             version: vars.version,
             description: `Generated using @plattar/sdk-core and used for interfacing with ${vars.name} backend service`,
             main: 'dist/index.js',
@@ -172,14 +172,14 @@ export class Project {
     }
 
     public static generateReadme(vars: PackageJsonVars): string {
-        let output = `[![NPM](https://img.shields.io/npm/v/@plattar/${vars.name})](https://www.npmjs.com/package/@plattar/${vars.name})\n\n`;
+        let output = `[![NPM](https://img.shields.io/npm/v/@plattar/${vars.name}-sdk)](https://www.npmjs.com/package/@plattar/${vars.name}-sdk)\n\n`;
         output += `### About\n\n`;
-        output += `_${vars.name}_ v${vars.version} is automatically generated using [sdk-core](https://www.npmjs.com/package/@plattar/sdk-core) module\n\n`;
+        output += `${vars.name}-sdk v${vars.version} is automatically generated using [sdk-core](https://www.npmjs.com/package/@plattar/sdk-core) module\n\n`;
         output += `### Installation\n\n`;
-        output += `-   Install using [npm](https://www.npmjs.com/package/@plattar/${vars.name})\n\n`;
-        output += `\`\`\`console\nnpm install @plattar/${vars.name}\n\`\`\`\n\n`;
+        output += `-   Install using [npm](https://www.npmjs.com/package/@plattar/${vars.name}-sdk)\n\n`;
+        output += `\`\`\`console\nnpm install @plattar/${vars.name}-sdk\n\`\`\`\n\n`;
         output += `### JSDelivr\n\n`;
-        output += `-   Minified Bundle \`https://cdn.jsdelivr.net/npm/@plattar/${vars.name}/build/bundle.min.js\`\n`;
+        output += `-   Minified Bundle \`https://cdn.jsdelivr.net/npm/@plattar/${vars.name}-sdk/build/bundle.min.js\`\n`;
 
         return output;
     }

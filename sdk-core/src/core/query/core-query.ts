@@ -2,7 +2,7 @@ import { CoreObject, CoreObjectAttributes } from '../core-object';
 import { GlobalObjectPool } from '../global-object-pool';
 import { Service } from '../service';
 import { CoreError } from './errors/core-error';
-import { QueryContainsOperator, ContainsQuery } from './queries/contains-query';
+import { ContainsQuery } from './queries/contains-query';
 import { DeletedQuery } from './queries/deleted-query';
 import { FieldsQuery } from './queries/fields-query';
 import { FilterQuery, FilterQueryOperator } from './queries/filter-query';
@@ -54,7 +54,11 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
      */
     public join(...queries: Array<CoreQuery<CoreObject<CoreObjectAttributes>, CoreObjectAttributes>>): this {
         queries.forEach((query: CoreQuery<CoreObject<CoreObjectAttributes>, CoreObjectAttributes>) => {
-            this._queries.push(new JoinQuery(query.toString()));
+            const queryString: string = query.toString();
+
+            if (queryString !== '') {
+                this._queries.push(new JoinQuery(queryString));
+            }
         });
 
         return this;
@@ -81,36 +85,38 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         return this;
     }
 
-    public include(...objects: Array<(typeof CoreObject<CoreObjectAttributes>) | Array<string>>): this {
-        const data: Array<string | Array<string>> = objects.map<string | Array<string>>((object: typeof CoreObject<CoreObjectAttributes> | Array<string>) => {
+    public include(...objects: Array<(typeof CoreObject<CoreObjectAttributes>) | (typeof CoreQuery<CoreObject<CoreObjectAttributes>, CoreObjectAttributes>) | Array<string>>): this {
+        const data: Array<string | Array<string>> = objects.map<string | Array<string>>((object: typeof CoreObject<CoreObjectAttributes> | typeof CoreQuery<CoreObject<CoreObjectAttributes>, CoreObjectAttributes> | Array<string>) => {
             if (Array.isArray(object)) {
                 return object.map<string>((object: string) => {
                     return `${this.instance.type}.${object}`;
                 });
             }
 
-            return `${this.instance.type}.${object.type}`;
+            if (object instanceof CoreQuery) {
+                this.join(object);
+
+                return `${this.instance.type}.${object.instance.type}`;
+            }
+
+            return `${this.instance.type}.${(<any>object).type}`;
         });
 
-        const consolidatedData: Array<string> = new Array<string>();
-
-        data.forEach((object: string | Array<string>) => {
-            if (Array.isArray(object)) {
-                consolidatedData.push(...object);
-            }
-            else {
-                consolidatedData.push(object);
-            }
-        });
-
-        this._queries.push(new IncludeQuery(consolidatedData));
+        this._queries.push(new IncludeQuery(data.flat()));
 
         return this;
     }
 
-    public contains(operation: QueryContainsOperator = '==', ...objects: Array<typeof CoreObject<CoreObjectAttributes>>): this {
+    public contains(...objects: Array<typeof CoreObject<CoreObjectAttributes>>): this {
         const data: Array<string> = objects.map<string>((object: typeof CoreObject<CoreObjectAttributes>) => object.type);
-        this._queries.push(new ContainsQuery(operation, data));
+        this._queries.push(new ContainsQuery("==", data));
+
+        return this;
+    }
+
+    public notContains(...objects: Array<typeof CoreObject<CoreObjectAttributes>>): this {
+        const data: Array<string> = objects.map<string>((object: typeof CoreObject<CoreObjectAttributes>) => object.type);
+        this._queries.push(new ContainsQuery("!=", data));
 
         return this;
     }
