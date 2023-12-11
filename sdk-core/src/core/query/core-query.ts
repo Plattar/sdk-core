@@ -161,7 +161,11 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         let url: string = '';
 
         queries.forEach((query: Query) => {
-            url += `${query.toString()}&`;
+            const queryString: string = query.toString();
+
+            if (queryString !== '') {
+                url += `${queryString}&`;
+            }
         });
 
         // remove the last & keyword
@@ -170,6 +174,17 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
 
     public static async fetch<T extends CoreObject<CoreObjectAttributes>>(service: Service, instance: T, encodedURL: string, type: QueryFetchType, abort?: AbortSignal): Promise<Array<T>> {
         const results: Array<T> = new Array<T>();
+
+        if (!fetch) {
+            CoreError.init({
+                error: {
+                    title: 'Runtime Error',
+                    text: `native fetch api not available, uprade your ${Util.isNode() ? 'NodeJS' : 'Browser'} environment`
+                }
+            }).handle(service);
+
+            return results;
+        }
 
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
