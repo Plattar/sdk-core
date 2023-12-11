@@ -1,6 +1,6 @@
 import { Util } from "../generator/generators/util";
 
-export type ServiceAuthType = 'cookie' | 'token';
+export type ServiceAuthType = 'cookie' | 'token' | 'none';
 export type ServiceErrorHandler = 'silent' | 'console.error' | 'console.warn' | 'throw';
 export type ServiceErrorListener = (err: Error) => void;
 
@@ -8,8 +8,9 @@ export interface ServiceAuth {
     // the authentication type to use for backend
     readonly type: ServiceAuthType;
 
-    // (optional) the authentication token to use, this will be ignored if
-    // authentication type is 'cookie'
+    // (optional) the authentication token to use
+    // if type == 'cookie' this will be used as a Cookie if set
+    // if type == 'token' this will be used as an Auth token if set
     readonly token?: string | null;
 }
 
@@ -88,7 +89,7 @@ export class Service {
                 errorListener: (config.options && config.options.errorListener && Util.isFunction(config.options.errorListener)) ? config.options.errorListener : (_: Error) => { /* silent handler */ }
             },
             auth: {
-                type: (config.auth && config.auth.type) ? config.auth.type : 'cookie',
+                type: (config.auth && config.auth.type) ? config.auth.type : 'none',
                 token: (config.auth && config.auth.token) ? config.auth.token : null
             }
         });

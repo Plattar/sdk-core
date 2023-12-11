@@ -1,3 +1,4 @@
+import { Util } from '../../generator/generators/util';
 import { CoreObject, CoreObjectAttributes } from '../core-object';
 import { GlobalObjectPool } from '../global-object-pool';
 import { Service } from '../service';
@@ -170,19 +171,52 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
     public static async fetch<T extends CoreObject<CoreObjectAttributes>>(service: Service, instance: T, encodedURL: string, type: QueryFetchType, abort?: AbortSignal): Promise<Array<T>> {
         const results: Array<T> = new Array<T>();
 
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+
         // init our request type
         const request: RequestInit = {
             method: type,
             mode: 'cors',
             cache: 'no-cache',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
             redirect: 'follow',
             referrerPolicy: 'origin'
         };
+
+        if (Util.isNode()) {
+            switch (service.config.auth.type) {
+                // for NodeJS we need to set the cookie header directly so we'll use the
+                // token as the actual cookies to send over to the server
+                case 'cookie':
+                    if (service.config.auth.token) {
+                        headers['cookie'] = service.config.auth.token;
+                    }
+                    break;
+                case 'token':
+                    if (service.config.auth.token) {
+                        headers['Authorization'] = `Bearer ${service.config.auth.token}`;
+                    }
+                    break;
+            }
+        }
+        else {
+            switch (service.config.auth.type) {
+                // in brwoser mode (non NodeJS) we send all cookies via `include` credentials
+                // which will instruct browser to send all current cookies to the server
+                case 'cookie':
+                    request.credentials = 'include';
+                    break;
+                case 'token':
+                    if (service.config.auth.token) {
+                        headers['Authorization'] = `Bearer ${service.config.auth.token}`;
+                    }
+                    break;
+            }
+        }
+
+        request.headers = headers;
 
         // send the payload if performing POST/PUT/PATCH requests
         switch (type) {
