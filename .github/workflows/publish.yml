@@ -25,10 +25,12 @@ jobs:
         run: rm -rf sdk-core/src/version.ts && echo 'export default "${{ env.RELEASE_VERSION }}";' > sdk-core/src/version.ts
       - name: copy README
         run: cp README.md sdk-core/README.md
-      - name: NPM Build
-        run: npm run --prefix sdk-core clean:build
+      - name: copy graphics
+        run: cp -R graphics sdk-core/
+      - name: NPM Login & Build
+        run: rm -rf sdk-core/.npmrc && npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_PUBLISH_KEY }} && npm run --prefix sdk-core clean:build
       - uses: JS-DevTools/npm-publish@v1
         with:
           package: ./sdk-core/package.json
           token: ${{ secrets.NPM_PUBLISH_KEY }}
-          access: 'restricted'
+          access: 'public'
