@@ -20,7 +20,7 @@ export class Generator {
             schemas.push(Schema.generate(<CoreController>(new (<any>controller)())));
         });
 
-        const outputDir: string = `./${data.output}/${data.package.name}`;
+        const outputDir: string = `./${data.output}/${data.package.name}-sdk`;
 
         // ensure project folder exists
         fs.mkdirSync(`${outputDir}/src/schemas`, { recursive: true });
