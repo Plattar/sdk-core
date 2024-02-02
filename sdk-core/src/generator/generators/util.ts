@@ -14,6 +14,18 @@ export class Util {
         }).join('');
     }
 
+    public static getClassAttributesName(name: string): string {
+        return `${Util.capitaliseClassName(name)}Attributes`;
+    }
+
+    public static getNameFromApiType(type: string): string {
+        return type.replaceAll('_', '-');
+    }
+
+    public static getFileNameFromApiType(type: string): string {
+        return `${Util.getNameFromApiType(type)}.ts`;
+    }
+
     /**
      * Returns the extracted ID's from a URL schema, for example
      * value of '/my/endpoint/:myid/something/:myother/final' will return string[] = ["myid", "myother"]
