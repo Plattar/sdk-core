@@ -58,20 +58,22 @@ export class StaticQueryGenerator {
                 const outputClassName: string = map.mount.meta.output ? Util.capitaliseClassName(map.mount.meta.output.type) : className;
                 const outputAttributesName: string = map.mount.meta.output ? Util.getClassAttributesName(map.mount.meta.output.type) : (isFile ? fileInterfaceName : interfaceName);
 
-                if (meta.outputType === 'single') {
+                const outputType: string = meta.outputType || 'single';
+
+                if (outputType === 'single') {
                     output += `\tpublic async ${meta.identifier}(${(isSet ? `params:${dataType}` : '')}): Promise<${outputClassName} | null> {\n`;
                     output += `\t\tconst url:string = \`${endpoint}${mountEndpoint}\`${isSet ? additionalQuery : ''};\n`;
                     output += `\t\tconst result:Array<${outputClassName}> = await this._Fetch<${outputClassName},${outputAttributesName}>(new ${outputClassName}(), url, '${map.mount.type}');\n`;
                     output += `\t\treturn result.length > 0 ? result[0] : null;\n`;
                     output += '\t}\n';
                 }
-                else if (meta.outputType === 'array') {
+                else if (outputType === 'array') {
                     output += `\tpublic async ${meta.identifier}(${(isSet ? `params:${dataType}` : '')}): Promise<Array<${outputClassName}>> {\n`;
                     output += `\t\tconst url:string = \`${endpoint}${mountEndpoint}\`${isSet ? additionalQuery : ''};\n`;
                     output += `\t\treturn await this._Fetch<${outputClassName},${outputAttributesName}>(new ${outputClassName}(), url, '${map.mount.type}');\n`;
                     output += '\t}\n';
                 }
-                else if (meta.outputType === 'void') {
+                else if (outputType === 'void') {
                     output += `\tpublic async ${meta.identifier}(${(isSet ? `params:${dataType}` : '')}): Promise<void> {\n`;
                     output += `\t\tconst url:string = \`${endpoint}${mountEndpoint}\`${isSet ? additionalQuery : ''};\n`;
                     output += `\t\tawait this._Fetch<${outputClassName},${outputAttributesName}>(new ${outputClassName}(), url, '${map.mount.type}');\n`;
