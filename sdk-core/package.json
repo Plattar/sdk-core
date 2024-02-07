@@ -46,8 +46,8 @@
   "dependencies": {},
   "devDependencies": {
     "typescript": "^5.3.3",
-    "@plattar/api-core": "^1.166.2",
-    "@types/node": "^20.11.13",
+    "@plattar/api-core": "^1.166.6",
+    "@types/node": "^20.11.16",
     "madge": "^6.1.0"
   },
   "publishConfig": {
