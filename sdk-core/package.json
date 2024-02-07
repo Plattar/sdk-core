@@ -45,9 +45,9 @@
   "homepage": "https://www.plattar.com",
   "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.2.2",
-    "@plattar/api-core": "^1.163.5",
-    "@types/node": "^18.16.0",
+    "typescript": "^5.3.3",
+    "@plattar/api-core": "^1.166.6",
+    "@types/node": "^20.11.16",
     "madge": "^6.1.0"
   },
   "publishConfig": {

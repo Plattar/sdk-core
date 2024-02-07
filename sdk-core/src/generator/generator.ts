@@ -1,7 +1,9 @@
-import { CoreController } from "@plattar/api-core";
+import { CoreController, ObjectSchema } from "@plattar/api-core";
 import { GeneratedProject, PackageJsonVars, Project } from "./generators/project";
-import { GeneratedSchema, Schema } from "./generators/schema";
+import { Schema } from "./generators/schema";
 import fs from "fs";
+import { SchemaList } from "./generators/schema-list";
+import { EndpointMapping, SchemaCollection } from "./generators/schema-collection";
 
 export interface GeneratorData {
     readonly controllers: Array<typeof CoreController>;
@@ -13,11 +15,19 @@ export class Generator {
     public static async generate(data: GeneratorData): Promise<void> {
         // generate the project files
         const project: GeneratedProject = Project.generate(data.package);
-        const schemas: Array<GeneratedSchema> = new Array<GeneratedSchema>();
+
+        const schemas: SchemaList = new SchemaList();
+        const collections: SchemaCollection = new SchemaCollection();
+
+        // add all schemas into the collections pool
+        data.controllers.forEach((controller: typeof CoreController) => {
+            collections.push(<CoreController>(new (<any>controller)()));
+        });
 
         // generate the schema source files
-        data.controllers.forEach((controller: typeof CoreController) => {
-            schemas.push(Schema.generate(<CoreController>(new (<any>controller)())));
+        // each schema can generate multiple schema files based on endpoints
+        collections.forEach((schema: typeof ObjectSchema, endpoints: Array<EndpointMapping>) => {
+            schemas.push(new Schema().generate(schema, endpoints));
         });
 
         const outputDir: string = `./${data.output}/${data.package.name}-sdk`;
@@ -56,7 +66,7 @@ export class Generator {
         ]));
     }
 
-    private static generateIndexFile(files: Array<{ dir: string, schemas: Array<GeneratedSchema> }>): string {
+    private static generateIndexFile(files: Array<{ dir: string, schemas: SchemaList }>): string {
         let output: string = '/*\n * Warning: Do Not Edit - Auto Generated via @plattar/sdk-core\n */\n\n';
 
         output += `export { Service, ServiceConfig, ServiceAuth, ServiceOptions, ServiceAuthType, ServiceErrorHandler, ServiceErrorListener, CoreError } from '@plattar/sdk-core';\n`;

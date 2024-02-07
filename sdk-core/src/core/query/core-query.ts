@@ -144,8 +144,8 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
     /**
      * Performs the primary request and returns the responses as an array
      */
-    protected async _Fetch(url: string, type: QueryFetchType): Promise<Array<T>> {
-        return CoreQuery.fetch<T>(this.service, this.instance, encodeURI(`${url}${this._queries.length > 0 ? `?${this.toString()}` : ''}`), type, this._abort.signal);
+    protected async _Fetch<Output extends CoreObject<U>, U extends CoreObjectAttributes>(output: Output, url: string, type: QueryFetchType): Promise<Array<Output>> {
+        return CoreQuery.fetch<T, Output>(this.service, this.instance, output, encodeURI(`${url}${this._queries.length > 0 ? `?${this.toString()}` : ''}`), type, this._abort.signal);
     }
 
     /**
@@ -172,8 +172,8 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
         return url.slice(0, -1);
     }
 
-    public static async fetch<T extends CoreObject<CoreObjectAttributes>>(service: Service, instance: T, encodedURL: string, type: QueryFetchType, abort?: AbortSignal): Promise<Array<T>> {
-        const results: Array<T> = new Array<T>();
+    public static async fetch<Input extends CoreObject<CoreObjectAttributes>, Output extends CoreObject<CoreObjectAttributes>>(service: Service, input: Input, output: Output, encodedURL: string, type: QueryFetchType, abort?: AbortSignal): Promise<Array<Output>> {
+        const results: Array<Output> = new Array<Output>();
 
         if (!fetch) {
             CoreError.init({
@@ -238,7 +238,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
             case 'POST':
             case 'PUT':
             case 'PATCH':
-                request.body = JSON.stringify(instance.payload);
+                request.body = JSON.stringify(input.payload);
                 break;
         }
 
@@ -352,16 +352,16 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
                 const object: any = listRecords[0];
 
                 // add the first object to the instance
-                cache.set(object.id, instance);
+                cache.set(object.id, output);
 
                 // construct the first object
-                instance.setFromAPI({
+                output.setFromAPI({
                     object: object,
                     includes: includesMap,
                     cache: cache
                 });
 
-                results.push(instance);
+                results.push(output);
 
                 // begin construction of every other instance
                 for (let i = 1; i < listRecords.length; i++) {
@@ -388,7 +388,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
                         cache: cache
                     });
 
-                    results.push(<T>objectInstance);
+                    results.push(<Output>objectInstance);
                 }
             }
             else {
@@ -406,16 +406,16 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
                 const cache: Map<string, CoreObject<CoreObjectAttributes>> = new Map<string, CoreObject<CoreObjectAttributes>>();
 
                 // add the first object to the instance
-                cache.set(record.id, instance);
+                cache.set(record.id, output);
 
                 // construct the first object
-                instance.setFromAPI({
+                output.setFromAPI({
                     object: record,
                     includes: includesMap,
                     cache: cache
                 });
 
-                results.push(instance);
+                results.push(output);
             }
         }
         catch (err: any) {

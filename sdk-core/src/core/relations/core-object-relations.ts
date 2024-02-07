@@ -116,9 +116,10 @@ export class CoreObjectRelations {
         }
 
         const connection: Service = service || Service.default;
+        const newObjectInstance = objectType.newInstance();
 
         // otherwise we need to fetch and cache the relations directly
-        const results: Array<T> = await CoreQuery.fetch(connection, objectType.newInstance(), `${connection.url}/${this._instance.type}/${this._instance.id}/${objectType.type}`, 'GET');
+        const results: Array<T> = await CoreQuery.fetch<T, T>(connection, <T>newObjectInstance, <T>newObjectInstance, `${connection.url}/${this._instance.type}/${this._instance.id}/${objectType.type}`, 'GET');
 
         // add the results into the cache
         this.cache.put(objectType.type, results);

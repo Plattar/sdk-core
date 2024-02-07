@@ -1,68 +1,95 @@
-import { AttributeKT, CoreController, EndpointMetaData, EndpointMount, FileSchema, FileUpload, ObjectSchema, Util as CoreUtil } from '@plattar/api-core';
+import { ObjectSchema } from '@plattar/api-core';
 import { Util } from './util';
-
-export interface GeneratedSchema {
-    readonly name: string;
-    readonly fname: string;
-    readonly data: string;
-}
+import { EndpointMapping } from './schema-collection';
+import { AttributeGenerator } from './schemas/attribute-generator';
+import { StaticQueryGenerator } from './schemas/static-query-generator';
+import { DynamicQueryGenerator } from './schemas/dynamic-query-generator';
 
 /**
  * Contains helpful functions to generate Classes from a CoreController schema definition from the core-api
  */
 export class Schema {
 
+    private _name: string | null;
+    private _fname: string | null;
+    private _data: string | null;
+    private _key: string | null;
+
+    public constructor() {
+        this._name = null;
+        this._fname = null;
+        this._data = null;
+        this._key = null;
+    }
+
+    public get key(): string {
+        if (!this._key) {
+            throw new Error("Schema.key is not defined - use .generate() function");
+        }
+
+        return this._key;
+    }
+
+    public get name(): string {
+        if (!this._name) {
+            throw new Error("Schema.name is not defined - use .generate() function");
+        }
+
+        return this._name;
+    }
+
+    public get fname(): string {
+        if (!this._fname) {
+            throw new Error("Schema.fname is not defined - use .generate() function");
+        }
+
+        return this._fname;
+    }
+
+    public get data(): string {
+        if (!this._data) {
+            throw new Error("Schema.data is not defined - use .generate() function");
+        }
+
+        return this._data;
+    }
+
     /**
      * Generates a class using the provided controller
      */
-    public static generate(controller: CoreController): GeneratedSchema {
-        const schemaInstance: ObjectSchema = new (<any>controller.getSchema());
+    public generate(schema: typeof ObjectSchema, endpoints: Array<EndpointMapping>): Schema {
+        // create a list of all imports
+        const imports: Set<string> = new Set<string>();
+
+        endpoints.forEach((value: EndpointMapping) => {
+            if (value.mount.meta.input && value.mount.meta.input !== schema) {
+                imports.add(`import {${Util.capitaliseClassName(value.mount.meta.input.type)},${Util.getClassAttributesName(value.mount.meta.input.type)}} from './${Util.getNameFromApiType(value.mount.meta.input.type)}';`);
+            }
+
+            if (value.mount.meta.output && value.mount.meta.output !== schema) {
+                imports.add(`import {${Util.capitaliseClassName(value.mount.meta.output.type)},${Util.getClassAttributesName(value.mount.meta.output.type)}} from './${Util.getNameFromApiType(value.mount.meta.output.type)}';`);
+            }
+        });
+
+        let output: string = '';
+
+        imports.forEach((value: string) => {
+            output += `${value}\n`;
+        });
+
+        const schemaInstance: ObjectSchema = new (<any>schema);
         const className = Util.capitaliseClassName(schemaInstance.type);
-        const interfaceName = className + 'Attributes';
+        const interfaceName = Util.getClassAttributesName(schemaInstance.type);
         const queryName = className + 'Query';
-        const fileInterfaceName = className + 'FileAttributes';
-        const isFile: boolean = (schemaInstance instanceof FileSchema) ? true : false;
 
-        // GENERATE: import statement
-        let output = `import { CoreObject, CoreObjectAttributes, GlobalObjectPool, Service, ${(isFile ? 'CoreFileQuery, CoreFileAttributes' : 'CoreQuery')} } from '@plattar/sdk-core';\n`;
+        // generate attributes
+        output += AttributeGenerator.generate(schema);
 
-        // GENERATE: file-attributes (if any)
-        if (isFile) {
-            const fileSchema: FileSchema = <FileSchema>schemaInstance;
+        // generate static query interfaces
+        output += StaticQueryGenerator.generate(schema, endpoints);
 
-            output += `export interface ${fileInterfaceName} extends CoreFileAttributes {\n`
-
-            fileSchema.getFileUploads().forEach((value: FileUpload) => {
-                output += `\treadonly ${value.key}:any\n`;
-            });
-
-            output += '}\n';
-        }
-
-        // GENERATE: attributes interface, public is mutable and protected is immutable
-        output += `export interface ${interfaceName} extends CoreObjectAttributes {\n`;
-
-        schemaInstance.attributes.publicListTypes.forEach((attribute: AttributeKT) => {
-            output += `\t${attribute.key}${attribute.type !== 'any' ? '?' : ''}:${attribute.type};\n`;
-        });
-
-        schemaInstance.attributes.protectedListTypes.forEach((attribute: AttributeKT) => {
-            output += `\treadonly ${attribute.key}${attribute.type !== 'any' ? '?' : ''}:${attribute.type};\n`;
-        });
-
-        output += '}\n';
-
-        // GENERATE: the main Static Query object + all functions (functions to-do)
-        output += `export class ${queryName}Static extends ${(isFile ? 'CoreFileQuery' : 'CoreQuery')}<${className},${interfaceName}${(isFile ? `,${fileInterfaceName}` : '')}> {\n`;
-        output += this.generateStaticQueryFunctions(controller, className);
-
-        output += '}\n';
-
-        // GENERATE: the main Dynamic Query object + all functions (functions to-do)
-        output += `export class ${queryName}Dynamic extends ${(isFile ? 'CoreFileQuery' : 'CoreQuery')}<${className},${interfaceName}${(isFile ? `,${fileInterfaceName}` : '')}> {\n`;
-        output += this.generateDynamicQueryFunctions(controller, className);
-
-        output += '}\n';
+        // generate dynamic query interfaces
+        output += DynamicQueryGenerator.generate(schema, endpoints);
 
         // GENERATE: the main class
         output += `export class ${className} extends CoreObject<${interfaceName}> {\n`;
@@ -78,112 +105,11 @@ export class Schema {
 
         output += `}\nGlobalObjectPool.register(${className});\n`;
 
-        return {
-            name: schemaInstance.type.replaceAll('_', '-'),
-            fname: schemaInstance.type.replaceAll('_', '-') + '.ts',
-            data: output
-        };
-    }
+        this._key = schemaInstance.type;
+        this._name = schemaInstance.type.replaceAll('_', '-');
+        this._fname = schemaInstance.type.replaceAll('_', '-') + '.ts';
+        this._data = output;
 
-    private static generateDynamicQueryFunctions(controller: CoreController, className: string): string {
-        const mounts: Array<EndpointMount> = controller.mount();
-        const apiType: string = controller.getSchema().apiType;
-        const suffix: string = controller.suffix;
-        let endpoint: string = "";
-
-        if (suffix !== "") {
-            endpoint = endpoint + "/" + suffix;
-        }
-
-        if (apiType !== CoreUtil.DEFAULT_OBJECT_TYPE) {
-            endpoint = endpoint + "/" + apiType;
-        }
-
-        let output = '';
-
-        mounts.forEach((mount: EndpointMount) => {
-            const meta: EndpointMetaData | undefined = mount.meta;
-
-            if (meta && meta.returnType === "single") {
-                // generate the function
-                const data: Array<string> = Util.getParams(mount.endpoint);
-                let dataType: string | null = null;
-                let isSet: boolean = false;
-                let additionalQuery: string = '';
-
-                if (data.length > 0) {
-                    dataType = '{';
-
-                    data.forEach((attr: string) => {
-                        if (attr !== 'id') {
-                            dataType += `${attr}:string,`;
-
-                            isSet = true;
-
-                            additionalQuery += `.replace(':${attr}', params.${attr})`;
-                        }
-                    });
-
-                    dataType = (dataType.slice(0, -1) + '}');
-                }
-
-                const mountEndpoint: string = mount.endpoint.replace(":id", "${this.instance.id}");
-
-                output += `\tpublic async ${meta.name}(${(isSet ? `params:${dataType}` : '')}): Promise<${className} | null> {\n`;
-                output += `\t\tconst url:string = \`${endpoint}${mountEndpoint}\`${isSet ? additionalQuery : ''};\n`;
-                output += `\t\tconst result:Array<${className}> = await this._Fetch(url, '${mount.type}');\n`;
-                output += `\t\treturn result.length > 0 ? result[0] : null;\n`;
-                output += '\t}\n';
-            }
-        });
-
-        return output;
-    }
-
-    private static generateStaticQueryFunctions(controller: CoreController, className: string): string {
-        const mounts: Array<EndpointMount> = controller.mount();
-        const apiType: string = controller.getSchema().apiType;
-        const suffix: string = controller.suffix;
-        let endpoint: string = "";
-
-        if (suffix !== "") {
-            endpoint = endpoint + "/" + suffix;
-        }
-
-        if (apiType !== CoreUtil.DEFAULT_OBJECT_TYPE) {
-            endpoint = endpoint + "/" + apiType;
-        }
-
-        let output = '';
-
-        mounts.forEach((mount: EndpointMount) => {
-            const meta: EndpointMetaData | undefined = mount.meta;
-
-            if (meta && meta.returnType !== "custom") {
-                // generate the function
-                const data: Array<string> = Util.getParams(mount.endpoint);
-                let dataType: string | null = null;
-                let additionalQuery: string = '';
-
-                if (data.length > 0) {
-                    dataType = '{';
-
-                    data.forEach((attr: string) => {
-                        dataType += `${attr}:string,`;
-                        additionalQuery += `.replace(':${attr}', params.${attr})`;
-                    });
-
-                    dataType = (dataType.slice(0, -1) + '}');
-                }
-
-                output += `\tpublic async ${meta.name}(${(dataType ? `params:${dataType}` : '')}): Promise<${meta.returnType === "array" ? `Array<${className}>` : `${className} | null`}> {\n`;
-                output += `\t\tconst url:string = \`${endpoint}${mount.endpoint}\`${dataType ? additionalQuery : ''};\n`;
-                output += `\t\tconst result:Array<${className}> = await this._Fetch(url, '${mount.type}');\n`;
-                output += `\t\t${meta.returnType === "array" ? 'return result' : 'return result.length > 0 ? result[0] : null'};\n`;
-                output += '\t}\n';
-            }
-        });
-
-        return output;
+        return this;
     }
 }
