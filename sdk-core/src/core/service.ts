@@ -1,3 +1,4 @@
+import { DNS } from "./util/dns";
 import { Util } from "./util/util";
 
 export type ServiceAuthType = 'cookie' | 'token' | 'none';
@@ -109,7 +110,10 @@ export class Service {
             }
         });
 
-        this._health = null;
+        // dns health can only be checked on nodejs environments
+        // default to true for browsers, otherwise will be filled-in by NodeJS
+        // see .checkHealth() function
+        this._health = Util.isNode() ? null : { status: true };
 
         // set TLS options for NodeJS
         if (Util.isNode()) {
@@ -146,17 +150,13 @@ export class Service {
      * Checks the health of this service by performing a DNS lookup
      * NOTE: This will always return `true` for non-nodeJS environments
      */
-    public async checkHealth(): Promise<boolean> {
-        if (!Util.isNode()) {
-            return true;
-        }
-
+    public async checkHealth(forced: boolean = false): Promise<boolean> {
         if (this._health) {
             return this._health.status;
         }
 
         this._health = {
-            status: await Util.dnsCheck(this.config.url)
+            status: await DNS.check(this.config.url, forced)
         }
 
         return this._health.status;

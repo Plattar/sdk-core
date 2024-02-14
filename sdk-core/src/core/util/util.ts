@@ -48,23 +48,4 @@ export class Util {
             setTimeout(accept, ms);
         });
     }
-
-    /**
-     * Performs a DNS Check to the provided hostname to ensure it exists
-     */
-    public static dnsCheck(hostname: string): Promise<boolean> {
-        return new Promise<boolean>((accept, _reject) => {
-            if (!Util.isNode()) {
-                return accept(true);
-            }
-
-            import('dns').then((dns) => {
-                dns.lookup(hostname, (error) => {
-                    accept(error ? false : true);
-                });
-            }).catch(() => {
-                return accept(false);
-            });
-        });
-    }
 }

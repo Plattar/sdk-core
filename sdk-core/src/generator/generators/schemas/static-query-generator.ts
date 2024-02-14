@@ -40,19 +40,15 @@ export class StaticQueryGenerator {
                     dataType = '{';
 
                     data.forEach((attr: string) => {
-                        if (attr !== 'id') {
-                            dataType += `${attr}:string,`;
+                        dataType += `${attr}:string,`;
 
-                            isSet = true;
+                        isSet = true;
 
-                            additionalQuery += `.replace(':${attr}', params.${attr})`;
-                        }
+                        additionalQuery += `.replace(':${attr}', params.${attr})`;
                     });
 
                     dataType = (dataType.slice(0, -1) + '}');
                 }
-
-                const mountEndpoint: string = map.mount.endpoint.replace(":id", "${this.instance.id}");
 
                 // output class name culd be different depending on the endpoint mapping
                 const outputClassName: string = map.mount.meta.output ? Util.capitaliseClassName(map.mount.meta.output.type) : className;
@@ -62,20 +58,20 @@ export class StaticQueryGenerator {
 
                 if (outputType === 'single') {
                     output += `\tpublic async ${meta.identifier}(${(isSet ? `params:${dataType}` : '')}): Promise<${outputClassName} | null> {\n`;
-                    output += `\t\tconst url:string = \`${endpoint}${mountEndpoint}\`${isSet ? additionalQuery : ''};\n`;
+                    output += `\t\tconst url:string = \`${endpoint}${map.mount.endpoint}\`${isSet ? additionalQuery : ''};\n`;
                     output += `\t\tconst result:Array<${outputClassName}> = await this._Fetch<${outputClassName},${outputAttributesName}>(new ${outputClassName}(), url, '${map.mount.type}');\n`;
                     output += `\t\treturn result.length > 0 ? result[0] : null;\n`;
                     output += '\t}\n';
                 }
                 else if (outputType === 'array') {
                     output += `\tpublic async ${meta.identifier}(${(isSet ? `params:${dataType}` : '')}): Promise<Array<${outputClassName}>> {\n`;
-                    output += `\t\tconst url:string = \`${endpoint}${mountEndpoint}\`${isSet ? additionalQuery : ''};\n`;
+                    output += `\t\tconst url:string = \`${endpoint}${map.mount.endpoint}\`${isSet ? additionalQuery : ''};\n`;
                     output += `\t\treturn await this._Fetch<${outputClassName},${outputAttributesName}>(new ${outputClassName}(), url, '${map.mount.type}');\n`;
                     output += '\t}\n';
                 }
                 else if (outputType === 'void') {
                     output += `\tpublic async ${meta.identifier}(${(isSet ? `params:${dataType}` : '')}): Promise<void> {\n`;
-                    output += `\t\tconst url:string = \`${endpoint}${mountEndpoint}\`${isSet ? additionalQuery : ''};\n`;
+                    output += `\t\tconst url:string = \`${endpoint}${map.mount.endpoint}\`${isSet ? additionalQuery : ''};\n`;
                     output += `\t\tawait this._Fetch<${outputClassName},${outputAttributesName}>(new ${outputClassName}(), url, '${map.mount.type}');\n`;
                     output += `\t\treturn;\n`;
                     output += '\t}\n';

@@ -193,7 +193,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
             CoreError.init(url, {
                 error: {
                     title: 'Network Error',
-                    text: `configured service hostname is not healthy and cannot be reached, check host status`
+                    text: `configured service.url is not healthy and cannot be reached, check host status`
                 }
             }).handle(service);
 
