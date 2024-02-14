@@ -24,14 +24,16 @@ export class DNS {
 
             // otherwise, recheck and re-cache
             import('dns').then((dns) => {
-                dns.lookup(hostname, (error) => {
+                const url: URL = new URL(hostname);
+                dns.lookup(url.hostname, (error) => {
                     const status: boolean = (error ? false : true);
 
                     DNS._DNSCache.set(hostname, { status: status });
 
                     accept(status);
                 });
-            }).catch(() => {
+            }).catch((err) => {
+                console.error("DNS.check - " + err);
                 DNS._DNSCache.set(hostname, { status: false });
 
                 accept(false);
