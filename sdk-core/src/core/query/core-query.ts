@@ -187,6 +187,19 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
             return results;
         }
 
+        const serviceHealth: boolean = await service.checkHealth();
+
+        if (!serviceHealth) {
+            CoreError.init(url, {
+                error: {
+                    title: 'Network Error',
+                    text: `configured service hostname is not healthy and cannot be reached, check host status`
+                }
+            }).handle(service);
+
+            return results;
+        }
+
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'

@@ -4,6 +4,10 @@ export type ServiceAuthType = 'cookie' | 'token' | 'none';
 export type ServiceErrorHandler = 'silent' | 'console.error' | 'console.warn' | 'throw';
 export type ServiceErrorListener = (err: Error) => void;
 
+export interface ServiceHealth {
+    readonly status: boolean;
+}
+
 export interface ServiceAuth {
     // the authentication type to use for backend
     readonly type: ServiceAuthType;
@@ -84,6 +88,7 @@ export class Service {
     private static _defaultServiceInstance: Service | null;
 
     private readonly _config: LockedServiceConfig;
+    private _health: ServiceHealth | null;
 
     public constructor(config: ServiceConfig) {
         // makes a deep copy of the provided config so references do not get mixed up
@@ -103,6 +108,8 @@ export class Service {
                 token: (config.auth && config.auth.token) ? config.auth.token : null
             }
         });
+
+        this._health = null;
 
         // set TLS options for NodeJS
         if (Util.isNode()) {
@@ -133,6 +140,26 @@ export class Service {
         }
 
         return Service._defaultServiceInstance;
+    }
+
+    /**
+     * Checks the health of this service by performing a DNS lookup
+     * NOTE: This will always return `true` for non-nodeJS environments
+     */
+    public async checkHealth(): Promise<boolean> {
+        if (!Util.isNode()) {
+            return true;
+        }
+
+        if (this._health) {
+            return this._health.status;
+        }
+
+        this._health = {
+            status: await Util.dnsCheck(this.config.url)
+        }
+
+        return this._health.status;
     }
 
     /**
