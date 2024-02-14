@@ -42,4 +42,10 @@ export class Util {
     public static isFunction(obj: any): boolean {
         return !!(obj && obj.constructor && obj.call && obj.apply);
     }
+
+    public static sleep(ms: number): Promise<void> {
+        return new Promise((accept, _reject) => {
+            setTimeout(accept, ms);
+        });
+    }
 }

@@ -10,15 +10,17 @@ export interface JsonError {
 
 export class CoreError extends Error {
     private readonly _json: JsonError;
+    private readonly _source: string;
 
-    public constructor(json: JsonError) {
-        super(`Error - (${json.error.title})${json.error.status && json.error.status > 0 ? ` Status - (${json.error.status})` : ' '} Message - (${json.error.text})`);
+    public constructor(source: string, json: JsonError) {
+        super(`Error - (${json.error.title})${json.error.status && json.error.status > 0 ? ` Status - (${json.error.status})` : ''} Source - (${source}) Message - (${json.error.text})`);
 
         this._json = json;
+        this._source = source;
     }
 
-    public static init(json: JsonError): CoreError {
-        return new CoreError(json);
+    public static init(source: string, json: JsonError): CoreError {
+        return new CoreError(source, json);
     }
 
     public get status(): number {
@@ -31,6 +33,10 @@ export class CoreError extends Error {
 
     public get text(): string {
         return this._json.error.text;
+    }
+
+    public get source(): string {
+        return this._source;
     }
 
     /**

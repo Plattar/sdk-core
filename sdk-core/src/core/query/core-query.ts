@@ -174,9 +174,10 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
 
     public static async fetch<Input extends CoreObject<CoreObjectAttributes>, Output extends CoreObject<CoreObjectAttributes>>(service: Service, input: Input, output: Output, encodedURL: string, type: QueryFetchType, abort?: AbortSignal): Promise<Array<Output>> {
         const results: Array<Output> = new Array<Output>();
+        const url: string = `${service.config.url}${encodedURL}`;
 
         if (!fetch) {
-            CoreError.init({
+            CoreError.init(url, {
                 error: {
                     title: 'Runtime Error',
                     text: `native fetch api not available, uprade your ${Util.isNode() ? 'NodeJS' : 'Browser'} environment`
@@ -247,205 +248,229 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
             request.signal = abort;
         }
 
+        let response: Response | null = null;
+
         // proceed with generating the request - for anything other than GET we need to generate a payload
         // this payload is generated from non-null values of the object attributes
         try {
-            const response: Response = await fetch(`${service.config.url}${encodedURL}`, request);
-
-            if (!response.ok) {
-                CoreError.init({
-                    error: {
-                        title: 'Network Error',
-                        text: `there was an unexpected issue with the network`
-                    }
-                }).handle(service);
-
-                return results;
-            }
-
-            // catch backend timeout errors for long-running requests
-            if (response.status === 408) {
-                CoreError.init({
-                    error: {
-                        status: 408,
-                        title: 'Request Timeout',
-                        text: `request timed out`
-                    }
-                }).handle(service);
-
-                return results;
-            }
-
-            let json: any = null;
-
-            try {
-                json = await response.json();
-            }
-            catch (err: any) {
-                CoreError.init({
-                    error: {
-                        title: 'Runtime Error',
-                        text: `something unexpected occured during results parsing, details - ${err.message}`
-                    }
-                }).handle(service);
-
-                return results;
-            }
-
-            // ensure there is a json object that was parsed properly
-            if (!json) {
-                CoreError.init({
-                    error: {
-                        title: 'Runtime Error',
-                        text: 'runtime expected json results from fetch to be non-null'
-                    }
-                }).handle(service);
-
-                return results;
-            }
-
-            // check if the returned data is json error object
-            if (json.error) {
-                CoreError.init(json).handle(service);
-
-                return results;
-            }
-
-            // ensure json has the critical data section in-tact
-            if (!json.data) {
-                CoreError.init({
-                    error: {
-                        title: 'Runtime Error',
-                        text: 'runtime tried to parse malformed json data'
-                    }
-                }).handle(service);
-
-                return results;
-            }
-
-            // map includes query into a map structure
-            const includes: Array<any> = json.included || new Array<any>();
-            const includesMap: Map<string, any> = new Map<string, any>();
-
-            // fill in the includes map for faster Lookup when creating object hierarchies
-            includes.forEach((includesRecord: any) => {
-                if (includesRecord.id) {
-                    includesMap.set(includesRecord.id, includesRecord);
-                }
-            });
-
-            // begin parsing the json, which should be the details of the current
-            // object type - this could also be an array so we'll need extra object instances
-            // if Array - we are dealing with multiple records, otherwise its a single record
-            if (Array.isArray(json.data)) {
-                const listRecords: Array<any> = json.data;
-
-                // we don't have ANY results, return an empty array
-                if (listRecords.length <= 0) {
-                    return results;
-                }
-
-                // otherwise, the first result will be our current instance and any
-                // consecutive results will be created dynamically
-                // we create a global LUT cache to keep track of recursions
-                const cache: Map<string, CoreObject<CoreObjectAttributes>> = new Map<string, CoreObject<CoreObjectAttributes>>();
-                const object: any = listRecords[0];
-
-                // add the first object to the instance
-                cache.set(object.id, output);
-
-                // construct the first object
-                output.setFromAPI({
-                    object: object,
-                    includes: includesMap,
-                    cache: cache
-                });
-
-                results.push(output);
-
-                // begin construction of every other instance
-                for (let i = 1; i < listRecords.length; i++) {
-                    const record = listRecords[i];
-                    const objectInstance: CoreObject<CoreObjectAttributes> | null = cache.get(object.id) || GlobalObjectPool.newInstance(record.type);
-
-                    if (!objectInstance) {
-                        CoreError.init({
-                            error: {
-                                title: 'Runtime Error',
-                                text: `runtime could not create a new instance of object type ${record.type} at index ${i}`
-                            }
-                        }).handle(service);
-
-                        continue;
-                    }
-
-                    // add the first object to the instance
-                    cache.set(record.id, objectInstance);
-
-                    objectInstance.setFromAPI({
-                        object: listRecords[i],
-                        includes: includesMap,
-                        cache: cache
-                    });
-
-                    results.push(<Output>objectInstance);
-                }
-            }
-            else {
-                // handle single record types
-                const record: any = json.data;
-
-                // we don't have ANY results, return an empty array
-                if (!record.type || !record.id) {
-                    return results;
-                }
-
-                // otherwise, the first result will be our current instance and any
-                // consecutive results will be created dynamically
-                // we create a global LUT cache to keep track of recursions
-                const cache: Map<string, CoreObject<CoreObjectAttributes>> = new Map<string, CoreObject<CoreObjectAttributes>>();
-
-                // add the first object to the instance
-                cache.set(record.id, output);
-
-                // construct the first object
-                output.setFromAPI({
-                    object: record,
-                    includes: includesMap,
-                    cache: cache
-                });
-
-                results.push(output);
-            }
+            response = await this._ExpFetch(service, url, request, 0, abort);
         }
         catch (err: any) {
-            // throw the signal error in case the request was canelled
-            if (abort && abort.aborted) {
-                CoreError.init({
-                    error: {
-                        title: 'Aborted',
-                        text: 'request was manually aborted'
-                    }
-                }).handle(service);
+            err.handle(service);
 
+            return results;
+        }
+
+        // catch backend timeout errors for long-running requests
+        if (response.status === 408) {
+            CoreError.init(url, {
+                error: {
+                    status: 408,
+                    title: 'Request Timeout',
+                    text: `request timed out`
+                }
+            }).handle(service);
+
+            return results;
+        }
+
+        let json: any = null;
+
+        try {
+            json = await response.json();
+        }
+        catch (err: any) {
+            CoreError.init(url, {
+                error: {
+                    title: 'Runtime Error',
+                    text: `something unexpected occured during results parsing, details - ${err.message}`
+                }
+            }).handle(service);
+
+            return results;
+        }
+
+        // ensure there is a json object that was parsed properly
+        if (!json) {
+            CoreError.init(url, {
+                error: {
+                    title: 'Runtime Error',
+                    text: 'runtime expected json results from fetch to be non-null'
+                }
+            }).handle(service);
+
+            return results;
+        }
+
+        // check if the returned data is json error object
+        if (json.error) {
+            CoreError.init(url, json).handle(service);
+
+            return results;
+        }
+
+        // ensure json has the critical data section in-tact
+        if (!json.data) {
+            CoreError.init(url, {
+                error: {
+                    title: 'Runtime Error',
+                    text: 'runtime tried to parse malformed json data'
+                }
+            }).handle(service);
+
+            return results;
+        }
+
+        // map includes query into a map structure
+        const includes: Array<any> = json.included || new Array<any>();
+        const includesMap: Map<string, any> = new Map<string, any>();
+
+        // fill in the includes map for faster Lookup when creating object hierarchies
+        includes.forEach((includesRecord: any) => {
+            if (includesRecord.id) {
+                includesMap.set(includesRecord.id, includesRecord);
+            }
+        });
+
+        // begin parsing the json, which should be the details of the current
+        // object type - this could also be an array so we'll need extra object instances
+        // if Array - we are dealing with multiple records, otherwise its a single record
+        if (Array.isArray(json.data)) {
+            const listRecords: Array<any> = json.data;
+
+            // we don't have ANY results, return an empty array
+            if (listRecords.length <= 0) {
                 return results;
             }
 
-            // throw general errors
-            if (err instanceof CoreError) {
-                err.handle(service);
+            // otherwise, the first result will be our current instance and any
+            // consecutive results will be created dynamically
+            // we create a global LUT cache to keep track of recursions
+            const cache: Map<string, CoreObject<CoreObjectAttributes>> = new Map<string, CoreObject<CoreObjectAttributes>>();
+            const object: any = listRecords[0];
+
+            // add the first object to the instance
+            cache.set(object.id, output);
+
+            // construct the first object
+            output.setFromAPI({
+                object: object,
+                includes: includesMap,
+                cache: cache
+            });
+
+            results.push(output);
+
+            // begin construction of every other instance
+            for (let i = 1; i < listRecords.length; i++) {
+                const record = listRecords[i];
+                const objectInstance: CoreObject<CoreObjectAttributes> | null = cache.get(object.id) || GlobalObjectPool.newInstance(record.type);
+
+                if (!objectInstance) {
+                    CoreError.init(url, {
+                        error: {
+                            title: 'Runtime Error',
+                            text: `runtime could not create a new instance of object type ${record.type} at index ${i}`
+                        }
+                    }).handle(service);
+
+                    continue;
+                }
+
+                // add the first object to the instance
+                cache.set(record.id, objectInstance);
+
+                objectInstance.setFromAPI({
+                    object: listRecords[i],
+                    includes: includesMap,
+                    cache: cache
+                });
+
+                results.push(<Output>objectInstance);
             }
-            else {
-                CoreError.init({
-                    error: {
-                        title: 'Runtime Error',
-                        text: `something unexpected occured during runtime, details - ${err.message}`
-                    }
-                }).handle(service);
+        }
+        else {
+            // handle single record types
+            const record: any = json.data;
+
+            // we don't have ANY results, return an empty array
+            if (!record.type || !record.id) {
+                return results;
             }
+
+            // otherwise, the first result will be our current instance and any
+            // consecutive results will be created dynamically
+            // we create a global LUT cache to keep track of recursions
+            const cache: Map<string, CoreObject<CoreObjectAttributes>> = new Map<string, CoreObject<CoreObjectAttributes>>();
+
+            // add the first object to the instance
+            cache.set(record.id, output);
+
+            // construct the first object
+            output.setFromAPI({
+                object: record,
+                includes: includesMap,
+                cache: cache
+            });
+
+            results.push(output);
         }
 
         // return the final results which might contain 0 or more objects (depending on the request)
         return results;
+    }
+
+    /**
+     * Performs an exponential backoff fetch() request
+     */
+    private static async _ExpFetch(service: Service, url: string, request: RequestInit, attempt: number, abort?: AbortSignal): Promise<Response> {
+        let response: Response | null = null;
+
+        try {
+            response = await fetch(url, request);
+        }
+        catch (err: any) {
+            // check if abort was fired
+            if (abort && abort.aborted) {
+                throw CoreError.init(url, {
+                    error: {
+                        title: 'Aborted',
+                        text: 'request was manually aborted'
+                    }
+                });
+            }
+
+            // check if fetch() returned an internal error
+            throw CoreError.init(url, {
+                error: {
+                    title: 'Runtime Error',
+                    text: `something unexpected occured during runtime, details - ${err.message}`
+                }
+            });
+        }
+
+        // this should not happen, but here as a check regardless
+        if (!response) {
+            throw CoreError.init(url, {
+                error: {
+                    title: 'Runtime Error',
+                    text: `something unexpected occured during runtime, request instance was null`
+                }
+            });
+        }
+
+        // if the response was not ok, we try again using exponential backoff
+        if (!response.ok) {
+            const newAttempt: number = attempt + 1;
+
+            if (service.config.options.retry.tries >= newAttempt) {
+                await Util.sleep(Util.expoBackoffTime(newAttempt));
+
+                return this._ExpFetch(service, url, request, newAttempt, abort);
+            }
+        }
+
+        // otherwise return the response as-is
+        return response;
     }
 }
