@@ -1,7 +1,7 @@
-import { Util } from '../../generator/generators/util';
 import { CoreObject, CoreObjectAttributes } from '../core-object';
 import { GlobalObjectPool } from '../global-object-pool';
 import { Service } from '../service';
+import { Util } from '../util/util';
 import { CoreError } from './errors/core-error';
 import { ContainsQuery } from './queries/contains-query';
 import { DeletedQuery } from './queries/deleted-query';

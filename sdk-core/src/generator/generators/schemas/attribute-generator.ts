@@ -36,6 +36,10 @@ export class AttributeGenerator {
             output += `\treadonly ${attribute.key}${attribute.type !== 'any' ? '?' : ''}:${attribute.type};\n`;
         });
 
+        schemaInstance.attributes.runtimeListTypes.forEach((attribute: AttributeKT) => {
+            output += `\treadonly ${attribute.key}${attribute.type !== 'any' ? '?' : ''}:${attribute.type};\n`;
+        });
+
         output += '}\n';
 
         return output;

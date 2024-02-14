@@ -1,4 +1,4 @@
-import { Util } from "../generator/generators/util";
+import { Util } from "./util/util";
 
 export type ServiceAuthType = 'cookie' | 'token' | 'none';
 export type ServiceErrorHandler = 'silent' | 'console.error' | 'console.warn' | 'throw';
@@ -24,6 +24,12 @@ export interface ServiceOptions {
     // (optional) for non-secure NodeJS environments to enable/disable tls
     // this defaults to 'true'
     readonly tls?: boolean | null;
+
+    // (optional) exponential backoff mechanism, retry requests for a number of times
+    // before failure to alleviate network hiccups or issues. This is defaulted to 3 times
+    readonly retry?: {
+        readonly tries: number;
+    }
 
     // (optional) for error handling when api throws errors like 404, 401 etc
     // defaults to `console.error` which will print the error via console.error()
@@ -61,6 +67,9 @@ export interface LockedServiceConfig {
         readonly gzip: boolean;
         readonly errorHandler: ServiceErrorHandler;
         readonly errorListener: ServiceErrorListener;
+        readonly retry: {
+            readonly tries: number;
+        }
     };
     readonly auth: {
         readonly type: ServiceAuthType;
@@ -86,7 +95,8 @@ export class Service {
                 tls: (config.options && config.options.tls) ? Util.parseBool(config.options.tls) : false,
                 gzip: (config.options && config.options.gzip) ? Util.parseBool(config.options.gzip) : false,
                 errorHandler: (config.options && config.options.errorHandler) ? config.options.errorHandler : 'console.error',
-                errorListener: (config.options && config.options.errorListener && Util.isFunction(config.options.errorListener)) ? config.options.errorListener : (_: Error) => { /* silent handler */ }
+                errorListener: (config.options && config.options.errorListener && Util.isFunction(config.options.errorListener)) ? config.options.errorListener : (_: Error) => { /* silent handler */ },
+                retry: (config.options && config.options.retry ? { tries: Util.clamp(config.options.retry.tries, 0, 10) } : { tries: 3 })
             },
             auth: {
                 type: (config.auth && config.auth.type) ? config.auth.type : 'none',
