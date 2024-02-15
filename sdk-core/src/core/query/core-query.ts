@@ -1,6 +1,7 @@
 import { CoreObject, CoreObjectAttributes } from '../core-object';
 import { GlobalObjectPool } from '../global-object-pool';
 import { Service } from '../service';
+import { DNS } from '../util/dns';
 import { Util } from '../util/util';
 import { CoreError } from './errors/core-error';
 import { ContainsQuery } from './queries/contains-query';
@@ -174,7 +175,10 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
 
     public static async fetch<Input extends CoreObject<CoreObjectAttributes>, Output extends CoreObject<CoreObjectAttributes>>(service: Service, input: Input, output: Output, encodedURL: string, type: QueryFetchType, abort?: AbortSignal): Promise<Array<Output>> {
         const results: Array<Output> = new Array<Output>();
-        const url: string = `${service.config.url}${encodedURL}`;
+
+        // this resolves instantly if the url is not a localhost
+        const baseUrl: string = await DNS.resolveLocalhost(service.config.url);
+        const url: string = `${baseUrl}${encodedURL}`;
 
         if (!fetch) {
             CoreError.init(url, {
@@ -187,6 +191,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
             return results;
         }
 
+        // this resolves instantly if not running NodeJS or if health checking is disabled (by default)
         const serviceHealth: boolean = await service.checkHealth();
 
         if (!serviceHealth) {

@@ -32,11 +32,58 @@ export class DNS {
 
                     accept(status);
                 });
-            }).catch((err) => {
-                console.error("DNS.check - " + err);
+            }).catch((_err) => {
                 DNS._DNSCache.set(hostname, { status: false });
 
                 accept(false);
+            });
+        });
+    }
+
+    /**
+     * resolves a localhost into a valid internal ip address
+     */
+    public static resolveLocalhost(hostname: string): Promise<string> {
+        return new Promise<string>((accept, reject) => {
+            if (!Util.isNode()) {
+                return accept(hostname);
+            }
+
+            const url: URL = new URL(hostname);
+
+            if (url.hostname !== 'localhost') {
+                return accept(hostname);
+            }
+
+            // resolve localhost to an ip-address
+            // this is needed for example in docker environments
+            import('os').then((os) => {
+                const nets: any = os.networkInterfaces();
+                const results: any = {};
+
+                for (const name of Object.keys(nets)) {
+                    for (const net of nets[name]) {
+                        const familyV4Value = typeof net.family === 'string' ? 'IPv4' : 4;
+
+                        if (net.family === familyV4Value && !net.internal) {
+                            if (!results[name]) {
+                                results[name] = [];
+                            }
+
+                            results[name].push(net.address);
+                        }
+                    }
+                }
+
+                const result = results.en0 && results.en0.length > 0 ? results.en0[0] : null;
+
+                if (!result) {
+                    return accept(hostname);
+                }
+
+                return accept(`${url.protocol}//${result}${(url.port !== '' ? `:${url.port}` : '')}${(url.pathname !== '/' ? url.pathname : '')}`);
+            }).catch((_err) => {
+                accept(hostname);
             });
         });
     }
