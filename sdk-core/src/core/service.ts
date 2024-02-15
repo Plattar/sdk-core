@@ -30,6 +30,11 @@ export interface ServiceOptions {
     // this defaults to 'true'
     readonly tls?: boolean | null;
 
+    // (optional) perform a health check (only works for NodeJS) using DNS Lookup
+    // this defaults to `false` as can have speed implications
+    // health checks are performed once and cached for remainder of the application
+    readonly healthCheck?: boolean | null;
+
     // (optional) exponential backoff mechanism, retry requests for a number of times
     // before failure to alleviate network hiccups or issues. This is defaulted to 3 times
     readonly retry?: {
@@ -113,7 +118,7 @@ export class Service {
         // dns health can only be checked on nodejs environments
         // default to true for browsers, otherwise will be filled-in by NodeJS
         // see .checkHealth() function
-        this._health = Util.isNode() ? null : { status: true };
+        this._health = Util.isNode() ? (config.options && config.options.healthCheck ? null : { status: true }) : { status: true };
 
         // set TLS options for NodeJS
         if (Util.isNode()) {
