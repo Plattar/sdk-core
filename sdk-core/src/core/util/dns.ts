@@ -55,6 +55,11 @@ export class DNS {
                 return accept(hostname);
             }
 
+            // check if inside docker in lambda - use host.docker.internal if so
+            if (Util.isDocker()) {
+                return accept(`${url.protocol}//${'host.docker.internal'}${(url.port !== '' ? `:${url.port}` : '')}${(url.pathname !== '/' ? url.pathname : '')}`);
+            }
+
             // resolve localhost to an ip-address
             // this is needed for example in docker environments
             import('os').then((os) => {

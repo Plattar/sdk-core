@@ -24,6 +24,10 @@ export class Util {
         return (typeof process !== 'undefined') && (process.release.name === 'node');
     }
 
+    public static isDocker(): boolean {
+        return Util.isNode() && process.env['LAMBDA_TASK_ROOT'] ? true : false;
+    }
+
     public static parseBool(value: any): boolean {
         if (!value) {
             return false;
