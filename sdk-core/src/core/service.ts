@@ -1,8 +1,13 @@
-import { Util } from "../generator/generators/util";
+import { DNS } from "./util/dns";
+import { Util } from "./util/util";
 
 export type ServiceAuthType = 'cookie' | 'token' | 'none';
 export type ServiceErrorHandler = 'silent' | 'console.error' | 'console.warn' | 'throw';
 export type ServiceErrorListener = (err: Error) => void;
+
+export interface ServiceHealth {
+    readonly status: boolean;
+}
 
 export interface ServiceAuth {
     // the authentication type to use for backend
@@ -24,6 +29,17 @@ export interface ServiceOptions {
     // (optional) for non-secure NodeJS environments to enable/disable tls
     // this defaults to 'true'
     readonly tls?: boolean | null;
+
+    // (optional) perform a health check (only works for NodeJS) using DNS Lookup
+    // this defaults to `false` as can have speed implications
+    // health checks are performed once and cached for remainder of the application
+    readonly healthCheck?: boolean | null;
+
+    // (optional) exponential backoff mechanism, retry requests for a number of times
+    // before failure to alleviate network hiccups or issues. This is defaulted to 3 times
+    readonly retry?: {
+        readonly tries: number;
+    }
 
     // (optional) for error handling when api throws errors like 404, 401 etc
     // defaults to `console.error` which will print the error via console.error()
@@ -61,6 +77,9 @@ export interface LockedServiceConfig {
         readonly gzip: boolean;
         readonly errorHandler: ServiceErrorHandler;
         readonly errorListener: ServiceErrorListener;
+        readonly retry: {
+            readonly tries: number;
+        }
     };
     readonly auth: {
         readonly type: ServiceAuthType;
@@ -75,6 +94,7 @@ export class Service {
     private static _defaultServiceInstance: Service | null;
 
     private readonly _config: LockedServiceConfig;
+    private _health: ServiceHealth | null;
 
     public constructor(config: ServiceConfig) {
         // makes a deep copy of the provided config so references do not get mixed up
@@ -86,13 +106,19 @@ export class Service {
                 tls: (config.options && config.options.tls) ? Util.parseBool(config.options.tls) : false,
                 gzip: (config.options && config.options.gzip) ? Util.parseBool(config.options.gzip) : false,
                 errorHandler: (config.options && config.options.errorHandler) ? config.options.errorHandler : 'console.error',
-                errorListener: (config.options && config.options.errorListener && Util.isFunction(config.options.errorListener)) ? config.options.errorListener : (_: Error) => { /* silent handler */ }
+                errorListener: (config.options && config.options.errorListener && Util.isFunction(config.options.errorListener)) ? config.options.errorListener : (_: Error) => { /* silent handler */ },
+                retry: (config.options && config.options.retry ? { tries: Util.clamp(config.options.retry.tries, 0, 10) } : { tries: 3 })
             },
             auth: {
                 type: (config.auth && config.auth.type) ? config.auth.type : 'none',
                 token: (config.auth && config.auth.token) ? config.auth.token : null
             }
         });
+
+        // dns health can only be checked on nodejs environments
+        // default to true for browsers, otherwise will be filled-in by NodeJS
+        // see .checkHealth() function
+        this._health = Util.isNode() ? (config.options && config.options.healthCheck ? null : { status: true }) : { status: true };
 
         // set TLS options for NodeJS
         if (Util.isNode()) {
@@ -123,6 +149,22 @@ export class Service {
         }
 
         return Service._defaultServiceInstance;
+    }
+
+    /**
+     * Checks the health of this service by performing a DNS lookup
+     * NOTE: This will always return `true` for non-nodeJS environments
+     */
+    public async checkHealth(forced: boolean = false): Promise<boolean> {
+        if (this._health) {
+            return this._health.status;
+        }
+
+        this._health = {
+            status: await DNS.check(this.config.url, forced)
+        }
+
+        return this._health.status;
     }
 
     /**

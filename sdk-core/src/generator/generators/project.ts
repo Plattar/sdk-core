@@ -83,6 +83,10 @@ export class Project {
         output += `\t\t filename: 'bundle.min.js',\n`;
         output += `\t\t path: path.resolve(__dirname, './build')\n`;
         output += `\t },\n`;
+        output += `\t externals: [\n`;
+        output += `\t\t 'dns',\n`;
+        output += `\t\t 'os'\n`;
+        output += `\t ],\n`;
         output += `\t plugins: [new CleanWebpackPlugin()],\n`;
         output += `\t optimization: {\n`;
         output += `\t\t minimize: true\n`;

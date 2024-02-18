@@ -54,30 +54,4 @@ export class Util {
 
         return results;
     }
-
-    /**
-     * Checks if the provided object is a function
-     */
-    public static isFunction(obj: any): boolean {
-        return !!(obj && obj.constructor && obj.call && obj.apply);
-    }
-
-    /**
-     * Checks if running inside NodeJS
-     */
-    public static isNode(): boolean {
-        return (typeof process !== 'undefined') && (process.release.name === 'node');
-    }
-
-    public static parseBool(value: any): boolean {
-        if (!value) {
-            return false;
-        }
-
-        if ((typeof value === 'string') || (value instanceof String)) {
-            return value.toLowerCase() === 'true' ? true : false;
-        }
-
-        return value === true ? true : false;
-    }
 }

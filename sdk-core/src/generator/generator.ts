@@ -1,4 +1,4 @@
-import { CoreController, ObjectSchema } from "@plattar/api-core";
+import { CoreController, ObjectSchema, Util } from "@plattar/api-core";
 import { GeneratedProject, PackageJsonVars, Project } from "./generators/project";
 import { Schema } from "./generators/schema";
 import fs from "fs";
@@ -27,7 +27,9 @@ export class Generator {
         // generate the schema source files
         // each schema can generate multiple schema files based on endpoints
         collections.forEach((schema: typeof ObjectSchema, endpoints: Array<EndpointMapping>) => {
-            schemas.push(new Schema().generate(schema, endpoints));
+            if (schema.type !== Util.DEFAULT_OBJECT_TYPE) {
+                schemas.push(new Schema().generate(schema, endpoints));
+            }
         });
 
         const outputDir: string = `./${data.output}/${data.package.name}-sdk`;
