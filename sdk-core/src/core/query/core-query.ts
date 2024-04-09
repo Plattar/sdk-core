@@ -382,7 +382,7 @@ export abstract class CoreQuery<T extends CoreObject<U>, U extends CoreObjectAtt
             // begin construction of every other instance
             for (let i = 1; i < listRecords.length; i++) {
                 const record = listRecords[i];
-                const objectInstance: CoreObject<CoreObjectAttributes> | null = cache.get(object.id) || GlobalObjectPool.newInstance(record.type);
+                const objectInstance: CoreObject<CoreObjectAttributes> | null = cache.get(record.id) || GlobalObjectPool.newInstance(record.type);
 
                 if (!objectInstance) {
                     CoreError.init(url, {
